@@ -1,0 +1,1 @@
+DELETE FROM public.students WHERE register_no ILIKE '25CS%';
