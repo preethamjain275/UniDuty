@@ -89,8 +89,22 @@ export function AppShell({
       const mockUser = JSON.parse(mockUserStr);
       setHasSession(true);
       
-      // Merge mock user data into me object
-      setMe({ ...meServer, ...mockUser, isAdmin: mockUser.role === "admin" });
+      const mergedProfile = {
+        ...(meServer?.profile || {}),
+        ...mockUser,
+        id: mockUser.id || mockUser.employee_id || meServer?.profile?.id,
+        full_name: mockUser.full_name || meServer?.profile?.full_name || "Dr. Aarav Sharma",
+        department: mockUser.department || meServer?.profile?.department || "Computer Science",
+        designation: mockUser.designation || meServer?.profile?.designation || "Assistant Professor",
+      };
+
+      setMe({ 
+        ...meServer, 
+        ...mockUser, 
+        profile: mergedProfile,
+        full_name: mergedProfile.full_name,
+        isAdmin: mockUser.role === "admin" 
+      });
     } else {
       setHasSession(false);
       navigate({ to: "/auth", replace: true });

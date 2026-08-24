@@ -186,12 +186,16 @@ function DeptPieChart({ departments }: { departments: any[] }) {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
+function Stat({ label, value, hint, icon: Icon }: { label: string; value: number; hint?: string; icon?: any }) {
   return (
-    <div className="glass glass-hover rounded-2xl p-4">
-      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className="mt-2 font-display text-3xl font-semibold">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+    <div className="glass-strong glass-hover rounded-2xl p-5 border border-border/50 shadow-xl backdrop-blur-xl bg-card/60 relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">{label}</p>
+        {Icon && <Icon className="size-4 text-primary/70 group-hover:text-primary transition-colors" />}
+      </div>
+      <p className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground">{value}</p>
+      {hint ? <p className="mt-1.5 text-[11px] font-medium text-muted-foreground/80">{hint}</p> : null}
+      <div className="absolute -bottom-8 -right-8 size-20 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
     </div>
   );
 }
@@ -226,57 +230,62 @@ function DashboardPage() {
       title="Examination Control Centre"
       description="Today's duties, hall utilisation and faculty workload at a glance"
       actions={
-        <Button asChild>
+        <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 rounded-xl px-5">
           <Link to="/exams">{isAdmin ? "Plan an examination" : "View examinations"}</Link>
         </Button>
       }
     >
       {isLoading || !data ? (
-        <p className="text-sm text-muted-foreground">Loading control centre…</p>
+        <div className="p-8 text-center glass rounded-2xl">
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">Loading control centre…</p>
+        </div>
       ) : (
         <div className="space-y-6">
           {/* Today's Schedule Card */}
           <section>
-            <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <CalendarIcon className="size-4 text-primary" /> My duty schedule
+            <h2 className="text-sm font-bold tracking-wide uppercase text-muted-foreground mb-3 flex items-center gap-2">
+              <CalendarIcon className="size-4 text-primary" /> My Duty Schedule
             </h2>
             {todaysDuty ? (
-              <Card className="glass-strong border-l-4 border-l-primary overflow-hidden">
-                <CardContent className="p-4 sm:p-6">
+              <Card className="glass-strong border border-border/50 border-l-4 border-l-primary shadow-2xl backdrop-blur-xl bg-card/60 overflow-hidden relative">
+                <div className="absolute top-0 right-0 size-48 bg-primary/10 rounded-full blur-3xl" />
+                <CardContent className="p-5 sm:p-7 relative z-10">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-xl sm:text-2xl text-primary">{todaysDuty.hall}</CardTitle>
-                      <CardDescription className="text-sm sm:text-base font-medium mt-1">
+                      <CardTitle className="text-xl sm:text-2xl font-bold text-primary">{todaysDuty.hall}</CardTitle>
+                      <CardDescription className="text-sm sm:text-base font-semibold text-foreground/90 mt-1">
                         {todaysDuty.exam_name}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline" className="w-fit bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-3 py-1 text-xs sm:text-sm">
+                    <Badge variant="outline" className="w-fit bg-emerald-500/15 text-emerald-500 border-emerald-500/30 px-3.5 py-1 text-xs sm:text-sm font-bold rounded-full shadow-sm">
                       Active Duty
                     </Badge>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
-                    <div className="bg-background/50 p-3 rounded-xl border border-border/50">
-                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1"><Clock className="w-3.5 h-3.5"/> Time</div>
-                      <div className="font-semibold text-xs sm:text-sm">{todaysDuty.start_time}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-6">
+                    <div className="glass p-3.5 rounded-xl border border-border/50 backdrop-blur-md">
+                      <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 mb-1"><Clock className="w-3.5 h-3.5 text-primary"/> Time</div>
+                      <div className="font-bold text-xs sm:text-sm">{todaysDuty.start_time}</div>
                     </div>
-                    <div className="bg-background/50 p-3 rounded-xl border border-border/50">
-                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1"><Building2 className="w-3.5 h-3.5"/> Location</div>
-                      <div className="font-semibold text-xs sm:text-sm">Floor {todaysDuty.floor}</div>
+                    <div className="glass p-3.5 rounded-xl border border-border/50 backdrop-blur-md">
+                      <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 mb-1"><Building2 className="w-3.5 h-3.5 text-primary"/> Location</div>
+                      <div className="font-bold text-xs sm:text-sm">Floor {todaysDuty.floor}</div>
                     </div>
-                    <div className="bg-background/50 p-3 rounded-xl border border-border/50">
-                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1"><GraduationCap className="w-3.5 h-3.5"/> Department</div>
-                      <div className="font-semibold text-xs sm:text-sm">{(todaysDuty as any).department || "General"}</div>
+                    <div className="glass p-3.5 rounded-xl border border-border/50 backdrop-blur-md">
+                      <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 mb-1"><GraduationCap className="w-3.5 h-3.5 text-primary"/> Department</div>
+                      <div className="font-bold text-xs sm:text-sm">{(todaysDuty as any).department || "General"}</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="glass border-dashed border-border/50 shadow-sm">
+              <Card className="glass-strong border border-dashed border-border/60 shadow-lg backdrop-blur-xl bg-card/40 rounded-2xl">
                 <CardContent className="p-8 text-center flex flex-col items-center justify-center space-y-3">
-                  <CheckCircle2 className="w-10 h-10 text-muted-foreground/50" />
+                  <div className="size-12 rounded-full glass flex items-center justify-center border border-border/50">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                  </div>
                   <div className="space-y-1">
-                    <h3 className="text-base font-medium text-foreground">No Assignments Today</h3>
+                    <h3 className="text-base font-bold text-foreground">No Assignments Today</h3>
                     <p className="text-xs text-muted-foreground">You don't have any invigilation duties scheduled for today.</p>
                   </div>
                 </CardContent>

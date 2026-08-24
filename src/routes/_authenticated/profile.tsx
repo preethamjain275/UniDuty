@@ -170,22 +170,25 @@ function ProfilePage() {
     setConfirmPassword("");
   };
 
-  if (!me?.profile) return null;
-  const p = me.profile as any;
-  const displayAvatar = avatarUrl || p.avatar_url || "https://api.dicebear.com/7.x/initials/svg?seed=" + p.full_name;
+  if (!me?.profile && !me) return null;
+  const p = { ...(me?.profile || {}), ...(me || {}) } as any;
+  const fullName = p.full_name || me?.full_name || "Dr. Aarav Sharma";
+  const displayAvatar = avatarUrl || p.avatar_url || "https://api.dicebear.com/7.x/initials/svg?seed=" + fullName;
 
   return (
     <div className="flex flex-col gap-6 pb-20 fade-in-up">
       {/* Banner & Profile Header */}
-      <Card className="overflow-hidden border-border/50 shadow-xl bg-background/50 backdrop-blur-md rounded-2xl relative">
-        {/* LinkedIn 4:1 Ratio Banner */}
-        <div className="relative aspect-[4/1] min-h-[140px] md:min-h-[180px] w-full bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 overflow-hidden">
+      <Card className="overflow-hidden border-border/50 shadow-2xl bg-card/60 backdrop-blur-xl rounded-2xl relative">
+        {/* LinkedIn 4:1 Ratio Glass Banner */}
+        <div className="relative aspect-[4/1] min-h-[140px] md:min-h-[185px] w-full bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 overflow-hidden">
           {bannerUrl ? (
             <img src={bannerUrl} alt="Profile Banner" className="w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500">
-              <div className="absolute -bottom-12 -right-12 size-40 bg-white/10 rounded-full blur-2xl"></div>
-              <div className="absolute -top-12 -left-12 size-40 bg-white/10 rounded-full blur-2xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950">
+              {/* Glassmorphic ambient light blobs */}
+              <div className="absolute -bottom-10 -right-10 size-64 bg-cyan-500/20 rounded-full blur-3xl"></div>
+              <div className="absolute -top-10 -left-10 size-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-80 bg-primary/10 rounded-full blur-3xl"></div>
             </div>
           )}
 
@@ -199,7 +202,7 @@ function ProfilePage() {
                 onChange={handleBannerUpload} 
                 className="hidden" 
               />
-              <div className="bg-black/50 hover:bg-black/70 text-white backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all shadow-md">
+              <div className="glass hover:bg-white/20 text-white backdrop-blur-xl px-3.5 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all shadow-lg border border-white/20">
                 <Image className="size-3.5" />
                 {bannerUrl ? "Change Banner" : "Upload Banner"}
               </div>
@@ -208,14 +211,14 @@ function ProfilePage() {
               <button 
                 type="button"
                 onClick={handleRemoveBanner}
-                className="bg-black/50 hover:bg-rose-600 text-white backdrop-blur-md px-2.5 py-1.5 rounded-full flex items-center gap-1 text-xs font-bold transition-all shadow-md"
+                className="glass hover:bg-rose-600/80 text-white backdrop-blur-xl px-3 py-1.5 rounded-full flex items-center gap-1 text-xs font-bold transition-all shadow-lg border border-white/20"
                 title="Remove Banner Background"
               >
                 <Trash2 className="size-3.5" />
               </button>
             )}
-            <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs font-bold shadow-sm">
-              <User className="size-3.5" />
+            <div className="glass-strong text-white backdrop-blur-xl px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold shadow-lg border border-white/20">
+              <User className="size-3.5 text-cyan-400" />
               {me.isAdmin ? "ADMINISTRATOR" : "FACULTY"}
             </div>
           </div>
@@ -224,27 +227,27 @@ function ProfilePage() {
         <CardContent className="px-6 pb-6 pt-0 relative sm:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 -mt-16 sm:-mt-20">
             <div className="flex flex-col gap-4">
-              <div className="relative inline-block self-start rounded-full p-1.5 bg-background shadow-xl">
+              <div className="relative inline-block self-start rounded-full p-1.5 bg-background shadow-2xl border border-border/50">
                 <img
                   src={displayAvatar}
-                  alt={p.full_name}
-                  className="size-24 sm:size-32 rounded-full object-cover border-4 border-background"
+                  alt={fullName}
+                  className="size-24 sm:size-32 rounded-full object-cover border-4 border-background shadow-inner"
                 />
-                <span className="absolute bottom-3 right-3 size-4 rounded-full border-2 border-background bg-emerald-500 shadow-sm" />
+                <span className="absolute bottom-3 right-3 size-4 rounded-full border-2 border-background bg-emerald-500 shadow-md animate-pulse" />
               </div>
               <div>
-                <h2 className="text-2xl sm:text-3xl font-display font-bold leading-none">{p.full_name}</h2>
-                <div className="mt-2 text-sm font-semibold text-orange-500 flex items-center gap-1.5">
-                  {p.designation} • {p.department}
+                <h2 className="text-2xl sm:text-3xl font-display font-bold leading-none tracking-tight">{fullName}</h2>
+                <div className="mt-2.5 text-sm font-semibold text-primary flex items-center gap-1.5">
+                  {p.designation || "Assistant Professor"} • {p.department || "Computer Science"}
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">{p.email || (me.isAdmin ? "admin@snpsu.edu.in" : "faculty@snpsu.edu.in")}</div>
+                <div className="mt-1 text-xs text-muted-foreground font-medium">{p.email || (me.isAdmin ? "admin@snpsu.edu.in" : "faculty@snpsu.edu.in")}</div>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 mr-4 bg-muted/40 px-3 py-2 rounded-lg border border-border/50 text-xs font-semibold">
-                <Building2 className="size-4 text-muted-foreground" />
-                {p.department}
+              <div className="hidden sm:flex items-center gap-2 mr-2 glass px-3.5 py-2 rounded-xl border border-border/50 text-xs font-semibold">
+                <Building2 className="size-4 text-primary" />
+                {p.department || "Computer Science"}
               </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 <Label htmlFor="avatar-file-input" className="flex-1 sm:flex-none">
@@ -255,7 +258,7 @@ function ProfilePage() {
                     onChange={handlePhotoUpload} 
                     className="hidden" 
                   />
-                  <Button asChild className="w-full gap-2 font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 rounded-xl cursor-pointer" size="sm">
+                  <Button asChild className="w-full gap-2 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 rounded-xl cursor-pointer" size="sm">
                     <span>
                       <Camera className="size-4" /> Change Photo
                     </span>
@@ -264,7 +267,7 @@ function ProfilePage() {
                 <Button 
                   variant="outline" 
                   onClick={handleRemovePhoto}
-                  className="flex-1 sm:flex-none gap-2 font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100 rounded-xl" 
+                  className="flex-1 sm:flex-none gap-2 font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20 rounded-xl" 
                   size="sm"
                 >
                   <Trash2 className="size-4" /> Remove Photo
@@ -273,17 +276,17 @@ function ProfilePage() {
             </div>
           </div>
           
-          <div className="mt-6 text-xs text-muted-foreground">
+          <div className="mt-6 text-xs text-muted-foreground/80 font-medium">
             Supported image formats: JPG, PNG, WEBP, GIF, SVG · LinkedIn aspect ratio banner background (4:1)
           </div>
         </CardContent>
       </Card>
 
       {/* Contact Details Form */}
-      <Card className="border-border/50 shadow-lg bg-background/50 backdrop-blur-md rounded-2xl">
+      <Card className="border-border/50 shadow-xl bg-card/60 backdrop-blur-xl rounded-2xl">
         <CardHeader className="border-b border-border/40 pb-4">
           <CardTitle className="text-base font-bold flex items-center gap-2">
-            <ContactRound className="size-5 text-orange-500" />
+            <ContactRound className="size-5 text-primary" />
             Contact Details
           </CardTitle>
         </CardHeader>
@@ -293,32 +296,32 @@ function ProfilePage() {
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
               <div className="relative">
-                <Input value={p.full_name} disabled className="bg-muted/30 font-medium pl-9" />
-                <User className="absolute left-3 top-2.5 size-4 text-muted-foreground/60" />
+                <Input value={fullName} disabled className="bg-muted/30 font-semibold pl-9 border-border/50" />
+                <User className="absolute left-3 top-2.5 size-4 text-muted-foreground/70" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Address</Label>
               <div className="relative">
-                <Input value={p.email || (me.isAdmin ? "admin@snpsu.edu.in" : "faculty@snpsu.edu.in")} disabled className="bg-muted/30 font-medium pl-9" />
-                <Mail className="absolute left-3 top-2.5 size-4 text-muted-foreground/60" />
+                <Input value={p.email || (me.isAdmin ? "admin@snpsu.edu.in" : "faculty@snpsu.edu.in")} disabled className="bg-muted/30 font-medium pl-9 border-border/50" />
+                <Mail className="absolute left-3 top-2.5 size-4 text-muted-foreground/70" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department</Label>
               <div className="relative">
-                <Input value={p.department} disabled className="bg-muted/30 font-medium pl-9" />
-                <Building2 className="absolute left-3 top-2.5 size-4 text-muted-foreground/60" />
+                <Input value={p.department || "Computer Science"} disabled className="bg-muted/30 font-medium pl-9 border-border/50" />
+                <Building2 className="absolute left-3 top-2.5 size-4 text-muted-foreground/70" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Employee ID</Label>
               <div className="relative">
-                <Input value={p.employee_id || (me.isAdmin ? "ADMIN" : p.id)} disabled className="bg-muted/30 font-medium pl-9" />
-                <BadgeInfo className="absolute left-3 top-2.5 size-4 text-muted-foreground/60" />
+                <Input value={p.employee_id || (me.isAdmin ? "ADMIN" : p.id)} disabled className="bg-muted/30 font-medium pl-9 border-border/50" />
+                <BadgeInfo className="absolute left-3 top-2.5 size-4 text-muted-foreground/70" />
               </div>
             </div>
 
@@ -329,9 +332,9 @@ function ProfilePage() {
                   value={phone} 
                   onChange={e => setPhone(e.target.value)} 
                   placeholder="Enter phone number..." 
-                  className="font-medium transition-all focus:border-orange-500 focus:ring-orange-500/20 pl-9" 
+                  className="font-medium transition-all pl-9 border-border/50 focus:border-primary focus:ring-primary/20" 
                 />
-                <Phone className="absolute left-3 top-2.5 size-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
+                <Phone className="absolute left-3 top-2.5 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               </div>
             </div>
 
@@ -342,9 +345,9 @@ function ProfilePage() {
                   value={office} 
                   onChange={e => setOffice(e.target.value)} 
                   placeholder="e.g. Room 101" 
-                  className="font-medium transition-all focus:border-orange-500 focus:ring-orange-500/20 pl-9" 
+                  className="font-medium transition-all pl-9 border-border/50 focus:border-primary focus:ring-primary/20" 
                 />
-                <MapPin className="absolute left-3 top-2.5 size-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
+                <MapPin className="absolute left-3 top-2.5 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               </div>
             </div>
 
@@ -355,15 +358,15 @@ function ProfilePage() {
                   value={emergencyPhone} 
                   onChange={e => setEmergencyPhone(e.target.value)} 
                   placeholder="Enter emergency contact phone..." 
-                  className="font-medium transition-all focus:border-orange-500 focus:ring-orange-500/20 pl-9" 
+                  className="font-medium transition-all pl-9 border-border/50 focus:border-primary focus:ring-primary/20" 
                 />
-                <ShieldAlert className="absolute left-3 top-2.5 size-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
+                <ShieldAlert className="absolute left-3 top-2.5 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               </div>
             </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-border/40 flex justify-end">
-            <Button onClick={handleSaveContact} disabled={updateMutation.isPending} className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 shadow-md shadow-orange-500/20 rounded-xl">
+            <Button onClick={handleSaveContact} disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg shadow-primary/20 rounded-xl">
               <Save className="size-4 mr-2" /> Save Changes
             </Button>
           </div>
@@ -371,10 +374,10 @@ function ProfilePage() {
       </Card>
 
       {/* Change Password Form */}
-      <Card className="border-border/50 shadow-lg bg-background/50 backdrop-blur-md rounded-2xl">
+      <Card className="border-border/50 shadow-xl bg-card/60 backdrop-blur-xl rounded-2xl">
         <CardHeader className="border-b border-border/40 pb-4">
           <CardTitle className="text-base font-bold flex items-center gap-2">
-            <KeyRound className="size-5 text-amber-500" />
+            <KeyRound className="size-5 text-primary" />
             Change Password
           </CardTitle>
         </CardHeader>
@@ -387,7 +390,7 @@ function ProfilePage() {
                   type={showCurrentPassword ? "text" : "password"} 
                   value={currentPassword} 
                   onChange={e => setCurrentPassword(e.target.value)} 
-                  className="font-medium pr-10 focus:border-orange-500 focus:ring-orange-500/20" 
+                  className="font-medium pr-10 border-border/50 focus:border-primary focus:ring-primary/20" 
                   placeholder="••••••••"
                 />
                 <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
@@ -403,7 +406,7 @@ function ProfilePage() {
                   type={showNewPassword ? "text" : "password"} 
                   value={newPassword} 
                   onChange={e => setNewPassword(e.target.value)} 
-                  className="font-medium pr-10 focus:border-orange-500 focus:ring-orange-500/20" 
+                  className="font-medium pr-10 border-border/50 focus:border-primary focus:ring-primary/20" 
                   placeholder="••••••••"
                 />
                 <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
@@ -419,7 +422,7 @@ function ProfilePage() {
                   type={showConfirmPassword ? "text" : "password"} 
                   value={confirmPassword} 
                   onChange={e => setConfirmPassword(e.target.value)} 
-                  className="font-medium pr-10 focus:border-orange-500 focus:ring-orange-500/20" 
+                  className="font-medium pr-10 border-border/50 focus:border-primary focus:ring-primary/20" 
                   placeholder="••••••••"
                 />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
@@ -429,11 +432,11 @@ function ProfilePage() {
             </div>
           </div>
 
-          <div className="mt-8 pt-6 flex justify-end gap-3">
-            <Button variant="outline" onClick={handleClearPassword} className="font-bold text-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100 hover:text-rose-600 rounded-xl px-6">
+          <div className="mt-8 pt-6 border-t border-border/40 flex justify-end gap-3">
+            <Button variant="outline" onClick={handleClearPassword} className="font-bold text-rose-500 border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 hover:text-rose-600 rounded-xl px-6">
               Clear
             </Button>
-            <Button onClick={handleUpdatePassword} disabled={updateMutation.isPending} className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 shadow-md shadow-orange-500/20 rounded-xl">
+            <Button onClick={handleUpdatePassword} disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg shadow-primary/20 rounded-xl">
               <KeyRound className="size-4 mr-2" /> Update Password
             </Button>
           </div>

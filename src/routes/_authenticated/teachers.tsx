@@ -686,11 +686,15 @@ function TeachersPage() {
           {selectedTeacherForAdmin && (
             <div className="space-y-6 pt-2">
               {/* Header Banner & Photo Card */}
-              <div className="relative overflow-hidden rounded-xl border border-border/50 bg-background shadow-sm">
-                <div className="h-24 w-full bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 relative overflow-hidden">
+              <div className="relative overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+                <div className="h-24 w-full bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 relative overflow-hidden">
                   {selectedTeacherForAdmin.banner_url ? (
                     <img src={selectedTeacherForAdmin.banner_url} alt="Banner" className="w-full h-full object-cover" />
-                  ) : null}
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950">
+                      <div className="absolute -bottom-8 -right-8 size-32 bg-cyan-500/20 rounded-full blur-2xl"></div>
+                    </div>
+                  )}
                 </div>
                 <div className="px-4 pb-4 flex items-end gap-4 -mt-8">
                   <img
@@ -700,7 +704,7 @@ function TeachersPage() {
                   />
                   <div className="pb-1">
                     <h3 className="font-bold text-lg leading-tight">{selectedTeacherForAdmin.full_name}</h3>
-                    <p className="text-xs text-orange-600 font-semibold">{selectedTeacherForAdmin.designation} • {selectedTeacherForAdmin.department}</p>
+                    <p className="text-xs text-primary font-semibold">{selectedTeacherForAdmin.designation} • {selectedTeacherForAdmin.department}</p>
                     <p className="text-xs text-muted-foreground">{selectedTeacherForAdmin.email}</p>
                   </div>
                 </div>
