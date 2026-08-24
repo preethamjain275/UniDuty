@@ -172,7 +172,7 @@ function ProfilePage() {
 
   if (!me?.profile && !me) return null;
   const p = { ...(me?.profile || {}), ...(me || {}) } as any;
-  const fullName = p.full_name || me?.full_name || "Dr. Aarav Sharma";
+  const fullName = p.full_name || (me as any)?.full_name || "Dr. Aarav Sharma";
   const displayAvatar = avatarUrl || p.avatar_url || "https://api.dicebear.com/7.x/initials/svg?seed=" + fullName;
 
   return (
