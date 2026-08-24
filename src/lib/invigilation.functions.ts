@@ -12,6 +12,7 @@ import {
   settingsSchema,
   teacherSchema,
   teacherActiveSchema,
+  staffImportSchema,
   studentImportSchema,
   roomImportSchema,
   emergencyRaiseSchema,
@@ -20,6 +21,11 @@ import {
   staffReviewSchema,
   markReadSchema,
   isAdminUser,
+  createNoticeSchema,
+  deleteNoticeSchema,
+  createStudentSchema,
+  updateStudentSchema,
+  deleteStudentSchema,
 } from "./invigilation.shared";
 
 const STAFF_DIRECTORY_COLUMNS =
@@ -68,8 +74,8 @@ const lastNamesList = [
 const depts = ["Computer Science", "Electrical", "Mechanical", "Civil", "Electronics", "Information Technology"];
 const sections = ["A", "B", "C", "D", "E"];
 
-// 50 Teachers / Staff (30 Teaching + 20 Non-Teaching) - Guaranteeing 100% Unique Names & IDs
-const MOCK_TEACHERS = Array.from({ length: 50 }, (_, i) => {
+// 5 Teachers / Staff (For specific admin mock requirement)
+const MOCK_TEACHERS = Array.from({ length: 5 }, (_, i) => {
   const fn = firstNamesList[i % firstNamesList.length];
   const ln = lastNamesList[(i * 3 + Math.floor(i / firstNamesList.length)) % lastNamesList.length];
   const fullName = `${i % 2 === 1 ? "Mr." : "Dr."} ${fn} ${ln}`;
@@ -80,8 +86,12 @@ const MOCK_TEACHERS = Array.from({ length: 50 }, (_, i) => {
     ? desigsNonTeaching[i % desigsNonTeaching.length]
     : desigsTeaching[i % desigsTeaching.length];
 
+  const empId = `EMP100${i + 1}`;
+  const email = `${fn.toLowerCase()}.${ln.toLowerCase()}@snpsu.edu.in`;
+
   return {
-    id: `teacher-${i + 1}`,
+    id: empId,
+    employee_id: empId,
     full_name: fullName,
     department: depts[i % depts.length],
     designation,
@@ -89,10 +99,14 @@ const MOCK_TEACHERS = Array.from({ length: 50 }, (_, i) => {
     is_senior: i % 4 === 0,
     max_duties: (i % 4) + 3,
     active: true,
-    email: `${fn.toLowerCase()}.${ln.toLowerCase()}${i + 1}@univ.edu`,
-    phone: `+91 98765 ${String(10000 + i + 1)}`,
-    employee_id: `EMP${1000 + i + 1}`,
+    email: email,
+    phone: "",
+    office: "",
+    emergency_phone: "",
+    password: "pass123",
+    avatar_url: null,
     duties: (i % 5) + 1,
+    block: ["A", "B", "C"][i % 3], // Randomly distribute across A, B, C blocks
   };
 });
 
@@ -128,6 +142,7 @@ const MOCK_EXAMS = [
     id: "exam-1",
     name: "IA-1 Internal Assessment",
     exam_type: "internal",
+    department: "Computer Science",
     exam_date: todayStr,
     start_time: "10:00 AM",
     duration_minutes: 90,
@@ -141,6 +156,7 @@ const MOCK_EXAMS = [
     id: "exam-2",
     name: "Midterm Examination 2026",
     exam_type: "internal",
+    department: "Electrical",
     exam_date: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10),
     start_time: "09:30 AM",
     duration_minutes: 120,
@@ -154,6 +170,7 @@ const MOCK_EXAMS = [
     id: "exam-3",
     name: "End Semester Theory Final",
     exam_type: "semester",
+    department: "Mechanical",
     exam_date: new Date(Date.now() + 86400000 * 15).toISOString().slice(0, 10),
     start_time: "02:00 PM",
     duration_minutes: 180,
@@ -167,6 +184,7 @@ const MOCK_EXAMS = [
     id: "exam-4",
     name: "Computer Science Lab Practical",
     exam_type: "internal",
+    department: "Computer Science",
     exam_date: new Date(Date.now() + 86400000 * 20).toISOString().slice(0, 10),
     start_time: "08:30 AM",
     duration_minutes: 180,
@@ -180,6 +198,7 @@ const MOCK_EXAMS = [
     id: "exam-5",
     name: "Special Supplementary Exam",
     exam_type: "semester",
+    department: "Civil",
     exam_date: new Date(Date.now() + 86400000 * 30).toISOString().slice(0, 10),
     start_time: "10:00 AM",
     duration_minutes: 180,
@@ -283,11 +302,19 @@ let stateMyDuties = [
 // In-memory state storage for dynamic additions and edits
 let stateExams = [...MOCK_EXAMS];
 let stateRooms = [...MOCK_ROOMS];
-let stateStudents = [...MOCK_STUDENTS];
+let stateStudents: any[] = [];
 let stateTeachers = [...MOCK_TEACHERS];
 let stateStaffRequests = [...MOCK_STAFF_REQUESTS];
 let stateEmergencies = [...MOCK_EMERGENCIES];
 let stateAllocations: any[] = [];
+let stateAdminNotices: any[] = [
+  {
+    id: "notice-1",
+    title: "Official Invigilation Guidelines for IA-1",
+    content: "All invigilators must report to the Exam Cell at least 30 minutes before the scheduled exam start time. Seating diagrams and answer booklets are available at the main counter.",
+    created_at: new Date(Date.now() - 3600000).toISOString(),
+  }
+];
 let stateSettings = {
   id: 1,
   two_invigilator_threshold: 40,
@@ -356,6 +383,20 @@ export const getDashboard = createServerFn({ method: "GET" })
       declinedDuties: 1,
     };
 
+    // Build departments live from stateTeachers, each faculty with their allocated room
+    const deptMap = new Map<string, { name: string; room: string }[]>();
+    stateTeachers.forEach((t, idx) => {
+      const dept = t.department || "General";
+      const room = stateRooms[idx % stateRooms.length]?.room_number ?? `A-${101 + idx}`;
+      if (!deptMap.has(dept)) deptMap.set(dept, []);
+      deptMap.get(dept)!.push({ name: t.full_name, room });
+    });
+    const departments = Array.from(deptMap.entries()).map(([name, members]) => ({
+      name,
+      value: members.length,
+      faculty: members, // [{name, room}] — all members
+    }));
+
     return {
       cards: cardsObj,
       metrics: cardsObj,
@@ -366,17 +407,12 @@ export const getDashboard = createServerFn({ method: "GET" })
         { name: "Mr. Rajesh Kumar", duties: 5 },
         { name: "Dr. Chetan Singh", duties: 4 },
       ],
-      departments: [
-        { name: "Computer Science", value: 140 },
-        { name: "Electronics", value: 110 },
-        { name: "Mechanical", value: 90 },
-        { name: "Civil", value: 80 },
-        { name: "Electrical", value: 80 },
-      ],
+      departments,
       floors: Array.from({ length: 5 }, (_, i) => ({ floor: `F${i + 1}`, duties: 8 })),
       upcoming: stateExams.slice(0, 5),
     };
   });
+
 
 export const listRooms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -480,6 +516,7 @@ export const createExam = createServerFn({ method: "POST" })
       start_time: data.start_time,
       duration_minutes: DURATIONS[data.exam_type] ?? 90,
       reporting_minutes: 30,
+      department: data.department || "General",
       status: "draft",
       rooms: data.room_ids.length || 10,
       duties: (data.room_ids.length || 10) * 2,
@@ -500,21 +537,37 @@ export const getExam = createServerFn({ method: "POST" })
     const teachers = stateTeachers;
     const students = stateStudents.slice(0, rooms.length * 30);
 
+    // Build hall-wise duties map from stateAllocations for this exam
+    const examAllocs = stateAllocations.filter((a) => a.exam_id === data.examId);
+
     let cursor = 0;
     const seatedHalls = rooms.map((r, rIdx) => {
       const seats = students.slice(cursor, cursor + 30);
       cursor += seats.length;
-      return {
-        id: `er-${rIdx}`,
-        room_id: r.id,
-        students_allocated: 30,
-        room: r,
-        duties: [
+
+      // Primary duties from allocations, fall back to deterministic mock
+      const hallAllocs = examAllocs.filter((a) => a.room_id === r.id);
+      let hallDuties;
+      if (hallAllocs.length > 0) {
+        hallDuties = hallAllocs.map((a) => {
+          const t = teachers.find((x) => x.id === a.teacher_id) || teachers[rIdx % teachers.length];
+          return {
+            id: a.id,
+            teacher_id: a.teacher_id,
+            duty_role: a.duty_role,
+            status: a.status,
+            cross_dept_fallback: a.cross_dept_fallback ?? false,
+            teacher: t,
+          };
+        });
+      } else {
+        hallDuties = [
           {
             id: `alloc-${rIdx}-1`,
             teacher_id: teachers[rIdx % teachers.length].id,
             duty_role: "primary",
             status: "accepted",
+            cross_dept_fallback: false,
             teacher: teachers[rIdx % teachers.length],
           },
           {
@@ -522,14 +575,45 @@ export const getExam = createServerFn({ method: "POST" })
             teacher_id: teachers[(rIdx + 25) % teachers.length].id,
             duty_role: "secondary",
             status: "accepted",
+            cross_dept_fallback: false,
             teacher: teachers[(rIdx + 25) % teachers.length],
           },
-        ],
+        ];
+      }
+
+      return {
+        id: `er-${rIdx}`,
+        room_id: r.id,
+        students_allocated: 30,
+        room: r,
+        duties: hallDuties,
         seatFrom: seats[0]?.serial_no ?? 1,
         seatTo: seats[seats.length - 1]?.serial_no ?? 30,
         students: seats,
       };
     });
+
+    // Relief invigilators per floor (from allocations if available)
+    const reliefAllocs = stateAllocations.filter(
+      (a) => a.exam_id === data.examId && a.duty_role === "relief",
+    );
+    const reliefByFloor: Record<number, any[]> = {};
+    if (exam.duration_minutes >= 180) {
+      for (const a of reliefAllocs) {
+        const t = teachers.find((x) => x.id === a.teacher_id) || teachers[0];
+        const floor = a.floor ?? 1;
+        if (!reliefByFloor[floor]) reliefByFloor[floor] = [];
+        reliefByFloor[floor].push({
+          id: a.id,
+          teacher_id: a.teacher_id,
+          duty_role: "relief",
+          status: "accepted",
+          cross_dept_fallback: a.cross_dept_fallback ?? false,
+          floor,
+          teacher: t,
+        });
+      }
+    }
 
     const standby = Array.from({ length: 4 }, (_, i) => ({
       id: `standby-${i}`,
@@ -542,6 +626,7 @@ export const getExam = createServerFn({ method: "POST" })
       exam,
       halls: seatedHalls,
       standby,
+      reliefByFloor,
       teachers,
       totalStudents: students.length,
       seatedStudents: cursor,
@@ -554,51 +639,68 @@ export const generateAllocation = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const exam = stateExams.find((e) => e.id === data.examId) || stateExams[0];
     const hallCount = exam.rooms || 12;
-    const eligibleTeachers = stateTeachers.filter((t) => t.active);
-    
-    // Shuffle teachers for rotation
-    const shuffled = [...eligibleTeachers].sort(() => Math.random() - 0.5);
+    const examDept: string = exam.department || "General";
 
-    // Update stateAllocations
-    const newAllocations = stateRooms.slice(0, hallCount).map((r, i) => {
-      const assignedTeacher = shuffled[i % shuffled.length];
-      return {
-        id: `alloc-${data.examId}-${r.id}`,
-        exam_id: data.examId,
-        room_id: r.id,
-        teacher_id: assignedTeacher.id,
-        duty_role: "primary",
-        status: "accepted",
-      };
+    // Build room slots
+    const slots = stateRooms.slice(0, hallCount).map((r) => ({
+      roomId: r.id,
+      roomNumber: r.room_number,
+      floor: r.floor ?? 1,
+      block: r.block ?? "A",
+      students: 30,
+      required: 2, // primary + checking staff per hall
+    }));
+
+    // Build duty counts from existing state
+    const dutyCounts: Record<string, number> = {};
+    for (const t of stateTeachers) {
+      dutyCounts[t.id] = t.duties ?? 0;
+    }
+
+    // Run dept-aware allocation engine
+    const plan = buildAllocationPlan({
+      slots,
+      teachers: stateTeachers
+        .filter((t) => t.active)
+        .map((t) => ({
+          id: t.id,
+          full_name: t.full_name,
+          employee_id: t.employee_id ?? null,
+          department: t.department,
+          is_senior: t.is_senior,
+          max_duties: t.max_duties,
+          block: t.block,
+        })),
+      dutyCounts,
+      unavailable: {},
+      standbyPercentage: stateSettings.standby_percentage,
+      examDept,
+      durationMinutes: exam.duration_minutes,
     });
 
-    stateAllocations = [...newAllocations, ...stateAllocations.filter((a) => a.exam_id !== data.examId)];
+    // Persist allocations to stateAllocations
+    const newAllocations = plan.duties.map((d, i) => ({
+      id: `alloc-${data.examId}-${i}`,
+      exam_id: data.examId,
+      room_id: d.roomId,
+      teacher_id: d.teacherId,
+      duty_role: d.dutyRole,
+      status: "accepted",
+      floor: d.floor ?? null,
+      cross_dept_fallback: d.cross_dept_fallback ?? false,
+    }));
+    stateAllocations = [
+      ...newAllocations,
+      ...stateAllocations.filter((a) => a.exam_id !== data.examId),
+    ];
 
-    return {
-      duties: stateRooms.slice(0, hallCount).map((r, i) => {
-        const t = shuffled[i % shuffled.length];
-        return {
-          roomId: r.id,
-          roomNumber: r.room_number,
-          floor: r.floor,
-          block: r.block,
-          students: 30,
-          teacherId: t.id,
-          teacherName: t.full_name,
-          dutyRole: "primary",
-        };
-      }),
-      unassigned: [],
-      conflicts: [],
-      stats: {
-        rooms: hallCount,
-        required: hallCount * 2,
-        assigned: hallCount * 2,
-        standby: Math.ceil(hallCount * 0.1),
-        eligible: eligibleTeachers.length,
-        fairness: 98,
-      },
-    };
+    // Update teacher duty counts
+    for (const d of plan.duties) {
+      const t = stateTeachers.find((x) => x.id === d.teacherId);
+      if (t) t.duties = (t.duties ?? 0) + 1;
+    }
+
+    return plan;
   });
 
 export const publishAllocation = createServerFn({ method: "POST" })
@@ -649,9 +751,31 @@ export const updateSettings = createServerFn({ method: "POST" })
   });
 
 export const upsertTeacher = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => teacherSchema.parse(input))
+  .validator((input: unknown) => teacherSchema.partial().parse(input))
   .handler(async ({ data }) => {
+    if (data.id) {
+      const idx = stateTeachers.findIndex(t => t.id === data.id || t.employee_id === data.id);
+      if (idx !== -1) {
+        stateTeachers[idx] = {
+          ...stateTeachers[idx],
+          ...(data.full_name ? { full_name: data.full_name } : {}),
+          ...(data.department ? { department: data.department } : {}),
+          ...(data.designation ? { designation: data.designation } : {}),
+          ...(data.email ? { email: data.email } : {}),
+          ...(data.block ? { block: data.block } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+          ...(data.office !== undefined ? { office: data.office } : {}),
+          ...(data.emergency_phone !== undefined ? { emergency_phone: data.emergency_phone } : {}),
+          ...(data.avatar_url !== undefined ? { avatar_url: data.avatar_url } : {}),
+          ...(data.banner_url !== undefined ? { banner_url: data.banner_url } : {}),
+        };
+        if (data.password && data.password.trim() !== "") {
+          stateTeachers[idx].password = data.password;
+        }
+        return { id: stateTeachers[idx].id, teacher: stateTeachers[idx] };
+      }
+    }
+    
     const teacher = {
       id: `teacher-${Date.now()}`,
       full_name: data.full_name,
@@ -664,10 +788,42 @@ export const upsertTeacher = createServerFn({ method: "POST" })
       email: data.email,
       phone: "+91 98765 43210",
       employee_id: `EMP${Math.floor(Math.random() * 9000 + 1000)}`,
+      password: data.password || "pass123",
       duties: 0,
+      block: data.block || "A",
     };
     stateTeachers.unshift(teacher);
     return { id: teacher.id };
+  });
+
+export const importStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => staffImportSchema.parse(input))
+  .handler(async ({ data }) => {
+    if (data.replaceExisting) {
+      stateTeachers = []; // clear all
+    }
+
+    const newStaff = data.rows.map((row, index) => {
+      return {
+        id: `teacher-${Date.now()}-${index}`,
+        full_name: row.full_name,
+        email: row.email || `staff.${Date.now()}.${index}@univ.edu`,
+        department: row.department || "General",
+        designation: row.designation || "Assistant Professor",
+        staff_type: "teaching",
+        is_senior: row.is_senior || false,
+        max_duties: 6,
+        active: true,
+        phone: "+91 98765 00000",
+        employee_id: `EMP${Math.floor(Math.random() * 9000 + 5000)}`,
+        duties: 0,
+        block: row.block || "A",
+      };
+    });
+
+    stateTeachers = [...newStaff, ...stateTeachers];
+    return { importedCount: newStaff.length };
   });
 
 export const setTeacherActive = createServerFn({ method: "POST" })
@@ -727,6 +883,10 @@ export const importStudents = createServerFn({ method: "POST" })
         match.semester = row.semester;
         updated++;
       } else {
+        const roomIndex = Math.floor(created / 30);
+        const seatIndex = created % 30;
+        const generatedSeatNo = (seatIndex * 2) + 1; // 1, 3, 5, ..., 59
+        
         stateStudents.push({
           id: `student-${Date.now()}-${created}`,
           serial_no: nextSerial++,
@@ -734,10 +894,11 @@ export const importStudents = createServerFn({ method: "POST" })
           full_name: row.full_name,
           department: row.department,
           semester: row.semester ?? 3,
+          section: row.section || "A",
           active: true,
-          seat_no: (nextSerial % 30) + 1,
-          hall: stateRooms[Math.floor(nextSerial / 30)]?.room_number ?? "H-101",
-          floor: stateRooms[Math.floor(nextSerial / 30)]?.floor ?? 1,
+          seat_no: generatedSeatNo,
+          hall: row.hall || (stateRooms[roomIndex]?.room_number ?? "H-101"),
+          floor: row.floor || (stateRooms[roomIndex]?.floor ?? 1),
         });
         created++;
       }
@@ -752,10 +913,84 @@ export const importStudents = createServerFn({ method: "POST" })
     };
   });
 
-export const myDuties = createServerFn({ method: "GET" })
+export const myDuties = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .inputValidator((input: unknown) => z.object({ teacherId: z.string().min(1) }).parse(input))
+  .handler(async ({ data }) => {
+    const allocations = stateAllocations.filter(a => a.teacher_id === data.teacherId);
+    
+    if (allocations.length > 0) {
+      return allocations.map(a => {
+        const exam = stateExams.find(e => e.id === a.exam_id);
+        const room = stateRooms.find(r => r.id === a.room_id);
+        return {
+          allocation_id: a.id,
+          duty_role: a.duty_role,
+          status: a.status,
+          exam_id: a.exam_id,
+          exam_name: exam?.name || "Unknown Exam",
+          exam_date: exam?.exam_date || new Date().toISOString().split('T')[0],
+          start_time: exam?.start_time || "10:00 AM",
+          duration_minutes: exam?.exam_type === 'internal' ? 90 : 180,
+          room_id: room?.id,
+          hall: room ? `Block ${room.block} - ${room.room_number}` : "Unknown Room",
+          floor: room?.floor || 1,
+          alert_raised: false,
+          department: exam?.department || "General",
+        };
+      });
+    }
+
+    // Fallback to mock duties for demo purposes if admin hasn't generated any yet
     return stateMyDuties;
+  });
+
+export const updateProfile = createServerFn({ method: "POST" })
+  .validator((input: unknown) => 
+    z.object({
+      id: z.string(),
+      phone: z.string().optional(),
+      office: z.string().optional(),
+      emergency_phone: z.string().optional(),
+      password: z.string().optional(),
+      avatar_url: z.string().nullable().optional(),
+      banner_url: z.string().nullable().optional(),
+    }).parse(input)
+  )
+  .handler(async ({ data }) => {
+    const teacherIndex = stateTeachers.findIndex(t => t.id === data.id || t.employee_id === data.id);
+    if (teacherIndex >= 0) {
+      if (data.phone !== undefined) stateTeachers[teacherIndex].phone = data.phone;
+      if (data.office !== undefined) stateTeachers[teacherIndex].office = data.office;
+      if (data.emergency_phone !== undefined) stateTeachers[teacherIndex].emergency_phone = data.emergency_phone;
+      if (data.password !== undefined && data.password.trim() !== "") {
+        stateTeachers[teacherIndex].password = data.password;
+      }
+      if (data.avatar_url !== undefined) stateTeachers[teacherIndex].avatar_url = data.avatar_url;
+      if (data.banner_url !== undefined) stateTeachers[teacherIndex].banner_url = data.banner_url;
+
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        if (supabaseAdmin) {
+          await supabaseAdmin.from("teachers").upsert({
+            id: stateTeachers[teacherIndex].id,
+            employee_id: stateTeachers[teacherIndex].employee_id,
+            full_name: stateTeachers[teacherIndex].full_name,
+            phone: stateTeachers[teacherIndex].phone,
+            office: stateTeachers[teacherIndex].office,
+            emergency_phone: stateTeachers[teacherIndex].emergency_phone,
+            password: stateTeachers[teacherIndex].password,
+            avatar_url: stateTeachers[teacherIndex].avatar_url,
+            banner_url: stateTeachers[teacherIndex].banner_url,
+          }).catch(() => {});
+        }
+      } catch (e) {
+        // Fallback silently if table does not exist
+      }
+
+      return { ok: true, teacher: stateTeachers[teacherIndex] };
+    }
+    return { ok: false, error: "Teacher not found" };
   });
 
 export const raiseEmergency = createServerFn({ method: "POST" })
@@ -896,3 +1131,87 @@ export const markNotificationsRead = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+export const listAdminNotices = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    return stateAdminNotices;
+  });
+
+export const createAdminNotice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => createNoticeSchema.parse(input))
+  .handler(async ({ data }) => {
+    const newNotice = {
+      id: `notice-${Date.now()}`,
+      title: data.title,
+      content: data.content,
+      created_at: new Date().toISOString(),
+    };
+    stateAdminNotices.unshift(newNotice);
+    return newNotice;
+  });
+
+export const deleteAdminNotice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => deleteNoticeSchema.parse(input))
+  .handler(async ({ data }) => {
+    stateAdminNotices = stateAdminNotices.filter((n) => n.id !== data.noticeId);
+    return { ok: true };
+  });
+
+export const createStudent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => createStudentSchema.parse(input))
+  .handler(async ({ data }) => {
+    const nextSerial = stateStudents.length > 0 ? Math.max(...stateStudents.map((s) => s.serial_no)) + 1 : 1;
+    const hall = stateRooms[Math.floor(nextSerial / 30)] || stateRooms[0];
+    const newStudent = {
+      id: `student-${Date.now()}`,
+      serial_no: nextSerial,
+      register_no: data.register_no,
+      full_name: data.full_name,
+      department: data.department,
+      section: data.section || "A",
+      semester: data.semester,
+      active: true,
+      seat_no: (nextSerial % 30) + 1,
+      hall: hall.room_number,
+      floor: hall.floor,
+    };
+    stateStudents.push(newStudent);
+    return newStudent;
+  });
+
+export const updateStudent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => updateStudentSchema.parse(input))
+  .handler(async ({ data }) => {
+    const student = stateStudents.find((s) => s.id === data.id);
+    if (!student) {
+      throw new Error("Student not found");
+    }
+    student.register_no = data.register_no;
+    student.full_name = data.full_name;
+    student.department = data.department;
+    student.section = data.section;
+    student.semester = data.semester;
+    return student;
+  });
+
+export const deleteStudent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => deleteStudentSchema.parse(input))
+  .handler(async ({ data }) => {
+    stateStudents = stateStudents.filter((s) => s.id !== data.studentId);
+    // Resequence serial numbers after deletion to keep lists clean
+    stateStudents.forEach((s, idx) => {
+      s.serial_no = idx + 1;
+      s.seat_no = (idx % 30) + 1;
+      const hall = stateRooms[Math.floor((idx + 1) / 30)] || stateRooms[0];
+      s.hall = hall.room_number;
+      s.floor = hall.floor;
+    });
+    return { ok: true };
+  });
+

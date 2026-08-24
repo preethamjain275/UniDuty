@@ -146,6 +146,24 @@ function ExamDetailPage() {
         ]);
       }
     }
+    if (exam?.duration_minutes >= 180 && data.reliefByFloor) {
+      Object.entries(data.reliefByFloor).forEach(([floor, reliefDuties]: [string, any]) => {
+        for (const r of reliefDuties) {
+          rows.push([
+            exam?.name ?? "",
+            exam?.exam_date ?? "",
+            String(exam?.start_time ?? "").slice(0, 5),
+            "Floor Rotation",
+            floor,
+            "",
+            "Relief Invigilator",
+            r.teacher?.full_name ?? "",
+            r.teacher?.department ?? "",
+            r.status,
+          ]);
+        }
+      });
+    }
     for (const s of data.standby) {
       rows.push([
         exam?.name ?? "",
@@ -288,7 +306,14 @@ function ExamDetailPage() {
                         <li key={d.id} className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-2">
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{d.teacher?.full_name ?? "—"}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-sm font-medium">{d.teacher?.full_name ?? "—"}</p>
+                                {d.cross_dept_fallback ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-warning text-warning">
+                                    Filled via shortage fallback
+                                  </Badge>
+                                ) : null}
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {ROLE_LABEL[d.duty_role] ?? d.duty_role} · {d.teacher?.department} · {d.status}
                               </p>
@@ -350,6 +375,65 @@ function ExamDetailPage() {
               ))}
             </div>
           </div>
+
+          {exam?.duration_minutes >= 180 && data.reliefByFloor && Object.keys(data.reliefByFloor).length > 0 && (
+            <div>
+              <h2 className="mb-3 text-sm font-semibold">Relief Invigilators</h2>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {Object.entries(data.reliefByFloor).map(([floor, reliefDuties]: [string, any]) => (
+                  <div key={floor} className="glass glass-hover rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-base font-semibold">Floor {floor}</p>
+                      <Badge variant="secondary">Relief Rotation</Badge>
+                    </div>
+                    <ul className="mt-3 space-y-2">
+                      {reliefDuties.map((d: any) => (
+                        <li key={d.id} className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-sm font-medium">{d.teacher?.full_name ?? "—"}</p>
+                                {d.cross_dept_fallback ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-warning text-warning">
+                                    Filled via shortage fallback
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Relief Invigilator · {d.teacher?.department} · {d.status}
+                              </p>
+                            </div>
+                            {isAdmin ? (
+                              <Button size="icon" variant="ghost" onClick={() => drop.mutate(d.id)}>
+                                <X className="size-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+                          {isAdmin ? (
+                          <Select
+                            value={d.teacher_id}
+                            onValueChange={(teacherId) => reassign.mutate({ allocationId: d.id, teacherId })}
+                          >
+                            <SelectTrigger className="mt-2 h-8 w-full text-xs">
+                              <SelectValue placeholder="Replace invigilator" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {data.teachers.map((t: any) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.full_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <h2 className="mb-3 text-sm font-semibold">Replacement staff on duty (one per floor)</h2>

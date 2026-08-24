@@ -17,6 +17,7 @@ import { Route as AuthenticatedDutySwapRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedEmergencyRouteImport } from './routes/_authenticated/emergency'
 import { Route as AuthenticatedInvigilationRouteImport } from './routes/_authenticated/invigilation'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRoomsRouteImport } from './routes/_authenticated/rooms'
 import { Route as AuthenticatedSeatingRouteImport } from './routes/_authenticated/seating'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -69,6 +70,11 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRoomsRoute = AuthenticatedRoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/emergency': typeof AuthenticatedEmergencyRoute
   '/invigilation': typeof AuthenticatedInvigilationRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/rooms': typeof AuthenticatedRoomsRoute
   '/seating': typeof AuthenticatedSeatingRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/emergency': typeof AuthenticatedEmergencyRoute
   '/invigilation': typeof AuthenticatedInvigilationRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/rooms': typeof AuthenticatedRoomsRoute
   '/seating': typeof AuthenticatedSeatingRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated/emergency': typeof AuthenticatedEmergencyRoute
   '/_authenticated/invigilation': typeof AuthenticatedInvigilationRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/rooms': typeof AuthenticatedRoomsRoute
   '/_authenticated/seating': typeof AuthenticatedSeatingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/invigilation'
     | '/notifications'
+    | '/profile'
     | '/rooms'
     | '/seating'
     | '/settings'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/invigilation'
     | '/notifications'
+    | '/profile'
     | '/rooms'
     | '/seating'
     | '/settings'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/emergency'
     | '/_authenticated/invigilation'
     | '/_authenticated/notifications'
+    | '/_authenticated/profile'
     | '/_authenticated/rooms'
     | '/_authenticated/seating'
     | '/_authenticated/settings'
@@ -304,6 +316,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rooms': {
@@ -385,6 +404,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEmergencyRoute: typeof AuthenticatedEmergencyRoute
   AuthenticatedInvigilationRoute: typeof AuthenticatedInvigilationRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRoomsRoute: typeof AuthenticatedRoomsRoute
   AuthenticatedSeatingRoute: typeof AuthenticatedSeatingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -403,6 +423,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmergencyRoute: AuthenticatedEmergencyRoute,
   AuthenticatedInvigilationRoute: AuthenticatedInvigilationRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRoomsRoute: AuthenticatedRoomsRoute,
   AuthenticatedSeatingRoute: AuthenticatedSeatingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,

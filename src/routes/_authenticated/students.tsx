@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listStudents } from "@/lib/invigilation.functions";
 import { StudentImportDialog } from "@/components/StudentImportDialog";
 
@@ -34,8 +35,15 @@ function StudentsPage() {
   const { data, isLoading } = useQuery({ queryKey: ["students"], queryFn: () => fn() });
   const [q, setQ] = useState("");
   const [selectedSection, setSelectedSection] = useState<string>("ALL");
+  const [selectedDept, setSelectedDept] = useState<string>("ALL");
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<"serial" | "name" | "section">("name");
+
+  const departments = useMemo(() => {
+    const all = data ?? [];
+    const unique = Array.from(new Set(all.map((s) => s.department).filter(Boolean))).sort();
+    return unique;
+  }, [data]);
 
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -48,9 +56,10 @@ function StudentsPage() {
         s.full_name.toLowerCase().includes(term) ||
         s.hall.toLowerCase().includes(term) ||
         (s.section && s.section.toLowerCase().includes(term));
-      
+
       const matchesSection = selectedSection === "ALL" || s.section === selectedSection;
-      return matchesSearch && matchesSection;
+      const matchesDept = selectedDept === "ALL" || s.department === selectedDept;
+      return matchesSearch && matchesSection && matchesDept;
     });
 
     const sorted = [...filtered];
@@ -64,7 +73,7 @@ function StudentsPage() {
       return a.serial_no - b.serial_no;
     });
     return sorted;
-  }, [data, q, selectedSection, sort]);
+  }, [data, q, selectedSection, selectedDept, sort]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE));
   const current = Math.min(page, pageCount - 1);
@@ -126,6 +135,25 @@ function StudentsPage() {
 
           {/* Section Filter Pills */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-foreground/10 bg-card/60 p-3 no-print">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Department Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase text-muted-foreground">Dept:</span>
+                <Select
+                  value={selectedDept}
+                  onValueChange={(v) => { setSelectedDept(v); setPage(0); }}
+                >
+                  <SelectTrigger className="h-8 w-44 text-xs">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Departments</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold uppercase text-muted-foreground mr-1">Section:</span>
               {["ALL", "A", "B", "C", "D", "E"].map((sec) => (
@@ -142,6 +170,7 @@ function StudentsPage() {
                   {sec === "ALL" ? "All Sections" : `Sec ${sec}`}
                 </Button>
               ))}
+            </div>
             </div>
 
             <div className="flex items-center gap-1">
@@ -188,9 +217,9 @@ function StudentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {slice.map((s) => (
+                {slice.map((s, i) => (
                   <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.serial_no}</TableCell>
+                    <TableCell className="font-medium">{current * PAGE + i + 1}</TableCell>
                     <TableCell className="font-mono text-xs font-semibold text-primary">{s.register_no}</TableCell>
                     <TableCell className="font-medium">{s.full_name}</TableCell>
                     <TableCell className="text-muted-foreground">{s.department}</TableCell>
@@ -212,7 +241,7 @@ function StudentsPage() {
 
           <div className="flex items-center justify-between text-sm no-print">
             <p className="text-muted-foreground">
-              Showing {slice.length} of {rows.length} students {selectedSection !== "ALL" ? `(Section ${selectedSection})` : ""}
+              Showing {slice.length} of {rows.length} students{selectedDept !== "ALL" ? ` · ${selectedDept}` : ""}{selectedSection !== "ALL" ? ` · Section ${selectedSection}` : ""}
             </p>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={current === 0} onClick={() => setPage(current - 1)}>

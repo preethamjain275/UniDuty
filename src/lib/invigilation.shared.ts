@@ -9,6 +9,7 @@ export const examSchema = z.object({
   start_time: z.string().min(4),
   room_ids: z.array(z.string().min(1)).min(1),
   students_per_room: z.number().int().min(1).max(200),
+  department: z.string().trim().min(1).max(80).default("General"),
 });
 
 export const settingsSchema = z.object({
@@ -20,12 +21,15 @@ export const settingsSchema = z.object({
 });
 
 export const teacherSchema = z.object({
+  id: z.string().optional(),
   full_name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(255),
   department: z.string().trim().min(1).max(80),
   designation: z.string().trim().min(1).max(80),
   is_senior: z.boolean(),
   max_duties: z.number().int().min(1).max(60),
+  block: z.string().trim().max(12).default("A"),
+  password: z.string().trim().min(1).max(255).optional(),
 });
 
 export const studentImportSchema = z.object({
@@ -38,6 +42,23 @@ export const studentImportSchema = z.object({
         full_name: z.string().trim().min(1).max(160),
         department: z.string().trim().max(80).optional(),
         semester: z.number().int().min(1).max(12).optional(),
+      }),
+    )
+    .min(1)
+    .max(5000),
+});
+
+export const staffImportSchema = z.object({
+  replaceExisting: z.boolean().default(false),
+  rows: z
+    .array(
+      z.object({
+        full_name: z.string().trim().min(2).max(120),
+        email: z.string().trim().email().max(255).optional(),
+        department: z.string().trim().max(80).optional(),
+        designation: z.string().trim().max(80).optional(),
+        block: z.string().trim().max(12).optional(),
+        is_senior: z.boolean().optional(),
       }),
     )
     .min(1)
@@ -127,3 +148,33 @@ export async function isAdminUser(
   const roles: string[] = (data ?? []).map((r: { role: string }) => r.role);
   return roles.includes("admin") || roles.includes("super_admin");
 }
+
+export const createNoticeSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  content: z.string().trim().min(1),
+});
+
+export const deleteNoticeSchema = z.object({
+  noticeId: z.string().min(1),
+});
+
+export const createStudentSchema = z.object({
+  register_no: z.string().trim().min(1).max(60),
+  full_name: z.string().trim().min(1).max(160),
+  department: z.string().trim().max(80).default("General"),
+  section: z.string().trim().max(10).default("A"),
+  semester: z.number().int().min(1).max(12).default(1),
+});
+
+export const updateStudentSchema = z.object({
+  id: z.string().min(1),
+  register_no: z.string().trim().min(1).max(60),
+  full_name: z.string().trim().min(1).max(160),
+  department: z.string().trim().max(80).default("General"),
+  section: z.string().trim().max(10).default("A"),
+  semester: z.number().int().min(1).max(12).default(1),
+});
+
+export const deleteStudentSchema = z.object({
+  studentId: z.string().min(1),
+});

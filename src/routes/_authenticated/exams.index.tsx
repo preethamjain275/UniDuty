@@ -68,6 +68,7 @@ function ExamsPage() {
   const [perRoom, setPerRoom] = useState(30);
   const [selected, setSelected] = useState<string[]>([]);
   const [blockFilter, setBlockFilter] = useState("all");
+  const [examDept, setExamDept] = useState("Computer Science");
 
   const availableRooms = (rooms.data ?? []).filter((r) => r.active);
   const blocks = Array.from(new Set(availableRooms.map((r) => r.block))).sort();
@@ -93,6 +94,7 @@ function ExamsPage() {
           start_time: startTime,
           room_ids: selected,
           students_per_room: perRoom,
+          department: examDept,
         },
       }),
     onSuccess: () => {
@@ -163,6 +165,19 @@ function ExamsPage() {
                       <SelectContent>
                         <SelectItem value="internal">Internal (90 min)</SelectItem>
                         <SelectItem value="semester">Semester (180 min)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Department</Label>
+                    <Select value={examDept} onValueChange={setExamDept}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["Computer Science","Electrical","Mechanical","Civil","Electronics","Information Technology"].map((d) => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
