@@ -82,7 +82,7 @@ function RoomCard({ r }: { r: any }) {
         </p>
 
         {/* Seat Grid */}
-        <div className={r.seated > 0 ? "mt-2 grid grid-cols-6 gap-1" : "hidden"}>
+        <div className={r.seated > 0 ? "mt-2 grid grid-cols-4 gap-1 sm:grid-cols-6" : "hidden"}>
           {Array.from({ length: Math.min(r.seated, 12) }, (_, i) => (
             <span
               key={i}

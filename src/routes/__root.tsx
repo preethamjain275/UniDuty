@@ -74,7 +74,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { title: "Sapthagiri NPS University — Exam Invigilation Management" },
       {
         name: "description",
@@ -136,7 +140,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
 }

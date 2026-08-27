@@ -360,18 +360,18 @@ function DashboardPage() {
                   <Card className="glass">
                     <CardContent className="p-6">
                       <h3 className="text-lg font-medium mb-4">Attendance Summary</h3>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-muted/50 p-4 rounded-xl text-center">
-                          <div className="text-sm text-muted-foreground">Total Assigned</div>
-                          <div className="text-3xl font-bold mt-1">{myStudents.length}</div>
+                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                        <div className="bg-muted/50 p-2 sm:p-4 rounded-xl text-center">
+                          <div className="text-[10px] sm:text-sm text-muted-foreground">Total Assigned</div>
+                          <div className="text-xl sm:text-3xl font-bold mt-1">{myStudents.length}</div>
                         </div>
-                        <div className="bg-green-500/10 p-4 rounded-xl text-center border border-green-500/20">
-                          <div className="text-sm text-green-700">Present</div>
-                          <div className="text-3xl font-bold mt-1 text-green-700">{myStudents.length - absentees.size}</div>
+                        <div className="bg-green-500/10 p-2 sm:p-4 rounded-xl text-center border border-green-500/20">
+                          <div className="text-[10px] sm:text-sm text-green-700">Present</div>
+                          <div className="text-xl sm:text-3xl font-bold mt-1 text-green-700">{myStudents.length - absentees.size}</div>
                         </div>
-                        <div className="bg-destructive/10 p-4 rounded-xl text-center border border-destructive/20">
-                          <div className="text-sm text-destructive">Absent</div>
-                          <div className="text-3xl font-bold mt-1 text-destructive">{absentees.size}</div>
+                        <div className="bg-destructive/10 p-2 sm:p-4 rounded-xl text-center border border-destructive/20">
+                          <div className="text-[10px] sm:text-sm text-destructive">Absent</div>
+                          <div className="text-xl sm:text-3xl font-bold mt-1 text-destructive">{absentees.size}</div>
                         </div>
                       </div>
                     </CardContent>

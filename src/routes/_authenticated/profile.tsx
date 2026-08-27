@@ -5,20 +5,48 @@ import { useServerFn } from "@tanstack/react-start";
 import { Camera, Save, Trash2, KeyRound, Eye, EyeOff, ContactRound, User, Mail, Building2, MapPin, Phone, ShieldAlert, BadgeInfo, Image } from "lucide-react";
 import { toast } from "sonner";
 
-import { useMe } from "@/components/AppShell";
+import { AppShell, useMe } from "@/components/AppShell";
 import { updateProfile } from "@/lib/invigilation.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
 });
 
+function readMockUser() {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem("mock_user") : null;
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function facultyRecordId(me: any) {
+  const mock = readMockUser();
+  const p = { ...(me?.profile || {}), ...(me || {}), ...(mock || {}) };
+  const id = p.employee_id || mock?.employee_id || mock?.id || p.id;
+  if (!id || id === "demo-admin-id") return mock?.employee_id || mock?.id || null;
+  return id;
+}
+
 function ProfilePage() {
-  const { data: me } = useMe();
+  const { data: meServer } = useMe();
+  const [mockUser, setMockUser] = useState(() => readMockUser());
+  const me = {
+    ...meServer,
+    ...mockUser,
+    profile: {
+      ...(meServer?.profile || {}),
+      ...(mockUser || {}),
+      id: mockUser?.id || mockUser?.employee_id || meServer?.profile?.id,
+    },
+    full_name: mockUser?.full_name || meServer?.full_name || meServer?.profile?.full_name,
+    isAdmin: mockUser?.role === "admin" || Boolean(meServer?.isAdmin && !mockUser),
+  };
   const queryClient = useQueryClient();
   const updateFn = useServerFn(updateProfile);
 
@@ -37,22 +65,19 @@ function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (me?.profile) {
-      const p = me.profile as any;
-      setPhone(p.phone || "");
-      setOffice(p.office || "");
-      setEmergencyPhone(p.emergency_phone || "");
-      setAvatarUrl(p.avatar_url || null);
-      setBannerUrl(p.banner_url || null);
-    }
-  }, [me]);
+    const p = { ...(meServer?.profile || {}), ...(mockUser || {}) } as any;
+    setPhone(p.phone || "");
+    setOffice(p.office || "");
+    setEmergencyPhone(p.emergency_phone || "");
+    setAvatarUrl(p.avatar_url || null);
+    setBannerUrl(p.banner_url || null);
+  }, [meServer, mockUser]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const p = me?.profile as any;
-      const id = p?.id || p?.employee_id;
+      const id = facultyRecordId(me);
       if (!id) throw new Error("Not logged in");
-      return updateFn({ data: { id, ...data } });
+      return updateFn({ data: { id: String(id), ...data } });
     },
     onSuccess: (res, variables) => {
       if (res.ok) {
@@ -68,6 +93,7 @@ function ProfilePage() {
             if (variables.banner_url !== undefined) updatedMock.banner_url = variables.banner_url;
             if (variables.password !== undefined) updatedMock.password = variables.password;
             localStorage.setItem("mock_user", JSON.stringify(updatedMock));
+            setMockUser(updatedMock);
           } catch (e) {
             console.error("Failed to sync mock_user in localStorage", e);
           }
@@ -176,11 +202,12 @@ function ProfilePage() {
   const displayAvatar = avatarUrl || p.avatar_url || "https://api.dicebear.com/7.x/initials/svg?seed=" + fullName;
 
   return (
-    <div className="flex flex-col gap-6 pb-20 fade-in-up">
+    <AppShell title="My Profile" description="Photo, contact details and password">
+    <div className="flex flex-col gap-6 pb-8 fade-in-up">
       {/* Banner & Profile Header */}
       <Card className="overflow-hidden border-border/50 shadow-2xl bg-card/60 backdrop-blur-xl rounded-2xl relative">
         {/* LinkedIn 4:1 Ratio Glass Banner */}
-        <div className="relative aspect-[4/1] min-h-[140px] md:min-h-[185px] w-full bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 overflow-hidden">
+        <div className="relative aspect-[4/1] min-h-[100px] w-full overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 sm:min-h-[140px] md:min-h-[185px]">
           {bannerUrl ? (
             <img src={bannerUrl} alt="Profile Banner" className="w-full h-full object-cover" />
           ) : (
@@ -193,7 +220,7 @@ function ProfilePage() {
           )}
 
           {/* Banner Controls & Badge */}
-          <div className="absolute right-4 top-4 flex items-center gap-2">
+          <div className="absolute right-2 top-2 flex max-w-[calc(100%-0.5rem)] flex-wrap items-center justify-end gap-1.5 sm:right-4 sm:top-4 sm:gap-2">
             <Label htmlFor="banner-file-input" className="cursor-pointer">
               <Input 
                 id="banner-file-input" 
@@ -224,8 +251,8 @@ function ProfilePage() {
           </div>
         </div>
 
-        <CardContent className="px-6 pb-6 pt-0 relative sm:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 -mt-16 sm:-mt-20">
+        <CardContent className="relative px-4 pb-6 pt-0 sm:px-8">
+          <div className="flex flex-col justify-between gap-6 -mt-12 sm:-mt-20 sm:flex-row sm:items-end">
             <div className="flex flex-col gap-4">
               <div className="relative inline-block self-start rounded-full p-1.5 bg-background shadow-2xl border border-border/50">
                 <img
@@ -432,7 +459,7 @@ function ProfilePage() {
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-border/40 flex justify-end gap-3">
+          <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-border/40 pt-6">
             <Button variant="outline" onClick={handleClearPassword} className="font-bold text-rose-500 border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 hover:text-rose-600 rounded-xl px-6">
               Clear
             </Button>
@@ -443,5 +470,6 @@ function ProfilePage() {
         </CardContent>
       </Card>
     </div>
+    </AppShell>
   );
 }

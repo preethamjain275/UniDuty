@@ -48,32 +48,32 @@ const FEATURES = [
 
 function Index() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex items-center justify-between px-6 py-5 md:px-12 border-b border-border/30">
-        <div className="flex items-center gap-3">
-          <img src="/snpsu-logo.png" alt="Sapthagiri NPS University Logo" className="size-10 object-contain" />
-          <div>
-            <span className="font-display text-lg font-bold leading-tight block">Sapthagiri NPS University</span>
-            <span className="text-[11px] text-muted-foreground font-semibold">Examination Cell Platform</span>
+    <div className="min-h-dvh max-w-[100vw] overflow-x-clip bg-background">
+      <header className="flex items-center justify-between gap-2 border-b border-border/30 px-4 py-4 sm:px-6 md:px-12" style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <img src="/snpsu-logo.png" alt="Sapthagiri NPS University Logo" className="size-9 shrink-0 object-contain sm:size-10" />
+          <div className="min-w-0">
+            <span className="block truncate font-display text-sm font-bold leading-tight sm:text-lg">Sapthagiri NPS University</span>
+            <span className="text-[11px] font-semibold text-muted-foreground">Examination Cell Platform</span>
           </div>
         </div>
-        <Button asChild size="sm" className="btn-3d">
+        <Button asChild size="sm" className="btn-3d shrink-0">
           <Link to="/auth">Sign in</Link>
         </Button>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-16 text-center md:py-24">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary mb-4">
-          <img src="/snpsu-logo.png" alt="SNPSU" className="size-4 object-contain" />
-          SAPTHAGIRI NPS UNIVERSITY EXAM CELL
+      <section className="mx-auto max-w-5xl px-4 py-10 text-center sm:px-6 md:py-24">
+        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-bold text-primary sm:px-4 sm:text-xs">
+          <img src="/snpsu-logo.png" alt="SNPSU" className="size-4 shrink-0 object-contain" />
+          <span className="truncate">SAPTHAGIRI NPS UNIVERSITY EXAM CELL</span>
         </div>
-        <h1 className="text-4xl font-bold text-balance md:text-6xl font-display">
+        <h1 className="text-balance font-display text-3xl font-bold sm:text-4xl md:text-6xl">
           Examination Seating & Invigilation Management
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
+        <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
           Plan internal and semester examinations across every hall. Generate official A-Form, B-Form, Tenancy Form, Master Seating Charts, and manage live classroom complaints.
         </p>
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <Button asChild size="lg" className="btn-3d">
             <Link to="/auth">Open Control Centre</Link>
           </Button>
@@ -83,7 +83,7 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-6 pb-24 md:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-16 sm:px-6 md:grid-cols-2 md:pb-24 lg:grid-cols-4">
         {FEATURES.map((f) => (
           <div key={f.title} className="glass glass-hover rounded-2xl p-5 text-left space-y-2">
             <f.icon className="size-5 text-primary" />

@@ -46,7 +46,9 @@ function AuthPage() {
     setTimeout(() => {
       setLoading(false);
       const upperId = empId.toUpperCase();
-      const teacher = teachers.find(t => t.employee_id === upperId);
+      const teacher =
+        teachers.find((t) => String(t.employee_id || "").toUpperCase() === upperId) ||
+        teachers.find((t) => String(t.id || "").toUpperCase() === upperId);
       
       if (teacher && password === teacher.password) {
         localStorage.setItem("mock_user", JSON.stringify({
@@ -83,8 +85,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
-      <div className="w-full max-w-md glass-strong rounded-2xl p-8">
+    <div className="flex min-h-dvh items-center justify-center bg-secondary px-4 py-10 sm:py-12">
+      <div className="glass-strong w-full max-w-md rounded-2xl p-5 sm:p-8">
         
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center mb-6">

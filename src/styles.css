@@ -153,6 +153,14 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    box-sizing: border-box;
+  }
+
+  html {
+    overflow-x: hidden;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -160,6 +168,13 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    min-width: 0;
+    overflow-x: clip;
+    touch-action: manipulation;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   h1,
@@ -327,5 +342,33 @@
 
 .print-header {
   display: none;
+}
+
+/* ---------------------------------------------
+ * Fluid layout — phones (iPhone, Samsung, Vivo, etc.)
+ * ------------------------------------------- */
+.app-header-actions {
+  scrollbar-width: none;
+}
+.app-header-actions::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .app-header-actions button,
+  .app-header-actions a,
+  .app-header-actions [role="button"] {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
 }
 

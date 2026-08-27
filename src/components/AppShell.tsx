@@ -84,11 +84,11 @@ export function AppShell({
   useEffect(() => {
     let active = true;
     const mockUserStr = localStorage.getItem("mock_user");
-    
+
     if (mockUserStr) {
       const mockUser = JSON.parse(mockUserStr);
       setHasSession(true);
-      
+
       const mergedProfile = {
         ...(meServer?.profile || {}),
         ...mockUser,
@@ -98,12 +98,12 @@ export function AppShell({
         designation: mockUser.designation || meServer?.profile?.designation || "Assistant Professor",
       };
 
-      setMe({ 
-        ...meServer, 
-        ...mockUser, 
+      setMe({
+        ...meServer,
+        ...mockUser,
         profile: mergedProfile,
         full_name: mergedProfile.full_name,
-        isAdmin: mockUser.role === "admin" 
+        isAdmin: mockUser.role === "admin"
       });
     } else {
       setHasSession(false);
@@ -139,6 +139,11 @@ export function AppShell({
     (staffRequests ?? []).filter((r) => !r.admin_read_at).length;
   const isAdmin = Boolean(me?.isAdmin);
   const nav = NAV.filter((item) => isAdmin || !ADMIN_ONLY.has(item.to));
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -147,51 +152,68 @@ export function AppShell({
     navigate({ to: "/auth", replace: true });
   }
 
+  const displayName = me?.full_name ?? (isAdmin ? "Admin User" : "Faculty Member");
+  const avatarSrc =
+    me?.profile?.avatar_url ||
+    "https://api.dicebear.com/7.x/initials/svg?seed=" + (me?.full_name || "User");
+
+  const navLinks = (mobile: boolean) =>
+    nav.map((item) => {
+      const active = pathname.startsWith(item.to);
+      const count = item.to === "/notifications" ? unread : 0;
+      const badge = isAdmin && count > 0 ? count : null;
+      return (
+        <Link
+          key={item.to}
+          to={item.to}
+          onClick={() => setNavOpen(false)}
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-300",
+            mobile ? "py-2.5" : "py-2",
+            mobile
+              ? active
+                ? "bg-primary/10 text-primary font-bold"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              : active
+                ? "bg-sidebar-accent/80 text-sidebar-accent-foreground shadow-[0_8px_24px_-14px_rgba(0,0,0,0.9)] backdrop-blur-md font-bold"
+                : "opacity-80 hover:bg-sidebar-accent/60 hover:opacity-100",
+          )}
+        >
+          <item.icon className="size-4 shrink-0" />
+          <span className="flex-1 truncate">{item.label}</span>
+          {badge ? (
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                mobile
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-sidebar-primary text-sidebar-primary-foreground",
+              )}
+            >
+              {badge}
+            </span>
+          ) : null}
+        </Link>
+      );
+    });
+
   return (
-    <div className="flex min-h-screen bg-transparent">
-      <aside className="glass-sidebar sticky top-0 hidden h-screen w-64 shrink-0 flex-col text-sidebar-foreground md:flex">
-        {/* SNPSU Logo Header */}
+    <div className="flex min-h-dvh w-full max-w-[100vw] bg-transparent overflow-x-clip">
+      <aside className="glass-sidebar sticky top-0 hidden h-dvh w-64 shrink-0 flex-col text-sidebar-foreground lg:flex">
         <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
           <img src="/snpsu-logo.png" alt="SNPSU Emblem" className="size-9 rounded-lg object-contain bg-white/10 p-0.5" />
-          <div>
+          <div className="min-w-0">
             <p className="font-display text-base font-bold leading-tight tracking-wide">SNPSU</p>
-            <p className="text-[11px] opacity-75 font-medium">UniDuty — Exam Operations</p>
+            <p className="text-[11px] opacity-75 font-medium truncate">UniDuty — Exam Operations</p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
-          {nav.map((item) => {
-            const active = pathname.startsWith(item.to);
-            const count = item.to === "/notifications" ? unread : 0;
-            const badge = isAdmin && count > 0 ? count : null;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300",
-                  active
-                    ? "bg-sidebar-accent/80 text-sidebar-accent-foreground shadow-[0_8px_24px_-14px_rgba(0,0,0,0.9)] backdrop-blur-md font-bold"
-                    : "opacity-80 hover:bg-sidebar-accent/60 hover:opacity-100",
-                )}
-              >
-                <item.icon className="size-4" />
-                <span className="flex-1 truncate">{item.label}</span>
-                {badge ? (
-                  <span className="rounded-full bg-sidebar-primary px-2 py-0.5 text-[10px] font-bold text-sidebar-primary-foreground">
-                    {badge}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </nav>
+        <nav className="flex-1 space-y-1 p-3 overflow-y-auto overscroll-contain">{navLinks(false)}</nav>
 
-        {/* User Card */}
         <div className="border-t border-sidebar-border p-3">
           <div className="flex items-center justify-between rounded-xl bg-sidebar-accent/30 p-2.5">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold">{me?.full_name ?? (isAdmin ? "Admin User" : "Faculty Member")}</p>
+              <p className="truncate text-xs font-bold">{displayName}</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                 {isAdmin ? "Administrator" : "Faculty"}
               </p>
@@ -203,96 +225,86 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col min-w-0">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border/40 bg-background/60 px-4 md:px-6 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="md:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="shrink-0">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle navigation menu</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[280px] p-0 flex flex-col bg-background/95 backdrop-blur-xl">
-                  {/* Mobile Logo */}
-                  <div className="flex items-center gap-3 border-b border-border/50 px-5 py-4">
-                    <img src="/snpsu-logo.png" alt="SNPSU Emblem" className="size-8 rounded-lg object-contain bg-white/10 p-0.5" />
-                    <div>
-                      <p className="font-display text-base font-bold leading-tight tracking-wide">SNPSU</p>
-                      <p className="text-[11px] opacity-75 font-medium">Exam Cell</p>
-                    </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header
+          className="sticky top-0 z-20 border-b border-border/40 bg-background/80 backdrop-blur-xl"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <div className="flex min-h-14 min-w-0 flex-wrap items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-4 lg:h-16 lg:flex-nowrap lg:px-6 lg:py-0">
+            <Sheet open={navOpen} onOpenChange={setNavOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-10 shrink-0 touch-manipulation lg:hidden"
+                  aria-label="Open menu"
+                >
+                  <Menu className="size-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="flex h-dvh w-[min(20rem,88vw)] flex-col bg-background/95 p-0 backdrop-blur-xl"
+              >
+                <div className="flex items-center gap-3 border-b border-border/50 px-5 py-4 pr-12">
+                  <img src="/snpsu-logo.png" alt="SNPSU Emblem" className="size-8 rounded-lg object-contain bg-white/10 p-0.5" />
+                  <div className="min-w-0">
+                    <p className="font-display text-base font-bold leading-tight tracking-wide">SNPSU</p>
+                    <p className="text-[11px] opacity-75 font-medium">Exam Cell</p>
                   </div>
-                  {/* Mobile Nav */}
-                  <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
-                    {nav.map((item) => {
-                      const active = pathname.startsWith(item.to);
-                      const count = item.to === "/notifications" ? unread : 0;
-                      const badge = isAdmin && count > 0 ? count : null;
-                      return (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          className={cn(
-                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
-                            active
-                              ? "bg-primary/10 text-primary font-bold"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                          )}
-                        >
-                          <item.icon className="size-4" />
-                          <span className="flex-1 truncate">{item.label}</span>
-                          {badge ? (
-                            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                              {badge}
-                            </span>
-                          ) : null}
-                        </Link>
-                      );
-                    })}
-                  </nav>
-                  {/* Mobile User Card */}
-                  <div className="border-t border-border/50 p-4 bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold">{me?.full_name ?? (isAdmin ? "Admin User" : "Faculty Member")}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                          {isAdmin ? "Administrator" : "Faculty"}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" onClick={signOut}>
-                        <LogOut className="size-4" />
-                      </Button>
+                </div>
+                <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain p-3">{navLinks(true)}</nav>
+                <div className="border-t border-border/50 bg-muted/30 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{displayName}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        {isAdmin ? "Administrator" : "Faculty"}
+                      </p>
                     </div>
+                    <Button variant="ghost" size="icon" className="size-8 shrink-0 text-muted-foreground hover:text-foreground" onClick={signOut}>
+                      <LogOut className="size-4" />
+                    </Button>
                   </div>
-                </SheetContent>
-              </Sheet>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <img src="/snpsu-logo.png" alt="SNPSU" className="size-7 shrink-0 lg:hidden" />
+
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display truncate text-sm font-bold leading-tight sm:text-base lg:text-lg">{title}</h1>
+              {description ? (
+                <p className="hidden truncate text-xs text-muted-foreground sm:block">{description}</p>
+              ) : null}
             </div>
-            <img src="/snpsu-logo.png" alt="SNPSU Logo" className="size-7 hidden sm:block md:hidden" />
-            <div>
-              <h1 className="font-display text-lg font-bold leading-tight">{title}</h1>
-              {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {actions}
+
+            {actions ? (
+              <div className="app-header-actions order-last flex w-full min-w-0 items-center gap-2 overflow-x-auto md:order-none md:w-auto md:max-w-[min(28rem,42vw)] lg:max-w-none">
+                {actions}
+              </div>
+            ) : null}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-muted/50 hover:bg-muted p-0">
-                  <img 
-                    src={me?.profile?.avatar_url || "https://api.dicebear.com/7.x/initials/svg?seed=" + (me?.full_name || "User")} 
-                    alt="Avatar" 
-                    className="h-10 w-10 rounded-full border-2 border-background object-cover" 
+                <Button
+                  variant="ghost"
+                  className="relative size-9 shrink-0 rounded-full bg-muted/50 p-0 hover:bg-muted sm:size-10"
+                  aria-label="Open profile menu"
+                >
+                  <img
+                    src={avatarSrc}
+                    alt="Profile"
+                    className="size-9 rounded-full border-2 border-background object-cover sm:size-10"
                   />
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-emerald-500 shadow-sm" />
+                  <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-background bg-emerald-500 shadow-sm sm:size-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-2">
+              <DropdownMenuContent align="end" className="mt-2 w-56 max-w-[calc(100vw-1.5rem)]">
                 <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium text-sm">{me?.full_name ?? (isAdmin ? "Admin User" : "Faculty Member")}</p>
-                    <p className="w-[200px] truncate text-xs text-muted-foreground">
+                  <div className="flex min-w-0 flex-col space-y-1 leading-none">
+                    <p className="truncate text-sm font-medium">{displayName}</p>
+                    <p className="truncate text-xs text-muted-foreground">
                       {me?.profile?.email || (isAdmin ? "admin@snpsu.edu.in" : "faculty@snpsu.edu.in")}
                     </p>
                   </div>
@@ -304,7 +316,7 @@ export function AppShell({
                     <span>My Profile</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={signOut}>
+                <DropdownMenuItem className="cursor-pointer text-rose-500 focus:bg-rose-50 focus:text-rose-600" onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign out</span>
                 </DropdownMenuItem>
@@ -312,7 +324,9 @@ export function AppShell({
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip p-3 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

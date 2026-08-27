@@ -175,7 +175,7 @@ function ExamsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {["Computer Science","Electrical","Mechanical","Civil","Electronics","Information Technology"].map((d) => (
+                        {["Computer Science", "Electrical", "Mechanical", "Civil", "Electronics", "Information Technology"].map((d) => (
                           <SelectItem key={d} value={d}>{d}</SelectItem>
                         ))}
                       </SelectContent>

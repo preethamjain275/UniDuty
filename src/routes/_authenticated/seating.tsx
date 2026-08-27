@@ -259,10 +259,13 @@ function SeatingPage() {
             size="sm"
           >
             <RefreshCw className={`size-4 ${genMut.isPending ? "animate-spin" : ""}`} />
-            {genMut.isPending ? "Shuffling…" : "Re-Generate & Shuffle"}
+            <span className="hidden sm:inline">{genMut.isPending ? "Shuffling…" : "Re-Generate & Shuffle"}</span>
+            <span className="sm:hidden">{genMut.isPending ? "Shuffle…" : "Shuffle"}</span>
           </Button>
           <Button onClick={handlePrint} size="sm" className="btn-3d">
-            <Printer className="size-4" /> Print All Pages
+            <Printer className="size-4" />
+            <span className="hidden sm:inline">Print All Pages</span>
+            <span className="sm:hidden">Print</span>
           </Button>
         </div>
       }
