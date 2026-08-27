@@ -97,66 +97,68 @@ function TenancyFormPage() {
               </Button>
             </div>
 
-            {/* Print Viewable Table */}
-            <div id="tenancy-print-area" className="p-6 bg-white text-black font-serif">
-              <div style={{ textAlign: "center", marginBottom: "16px", borderBottom: "2px solid #000", paddingBottom: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "4px" }}>
-                  <img src="/snpsu-logo.png" alt="SNPSU" style={{ width: "42px", height: "42px", objectFit: "contain" }} />
-                  <h2 style={{ fontSize: "18px", fontWeight: "900", margin: 0 }}>SAPTHAGIRI NPS UNIVERSITY</h2>
+            {/* Scrollable Container for Mobile Viewports */}
+            <div className="w-full overflow-x-auto p-4 bg-white rounded-b-2xl scrollbar-thin">
+              <div id="tenancy-print-area" className="min-w-[794px] p-6 bg-white text-black font-serif">
+                <div style={{ textAlign: "center", marginBottom: "16px", borderBottom: "2px solid #000", paddingBottom: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "4px" }}>
+                    <img src="/snpsu-logo.png" alt="SNPSU" style={{ width: "42px", height: "42px", objectFit: "contain" }} />
+                    <h2 style={{ fontSize: "18px", fontWeight: "900", margin: 0 }}>SAPTHAGIRI NPS UNIVERSITY</h2>
+                  </div>
+                  <h3 style={{ fontSize: "14px", fontWeight: "bold", margin: "4px 0" }}>Faculty Examination Duty Tenancy Form — August 2026</h3>
+                  <p style={{ fontSize: "11px", margin: 0 }}>
+                    <strong>Duty Timings:</strong> 1.30PM - 4.30PM | <strong>Frisking/Reporting Cell Timings:</strong> 12.55PM - 1.45PM
+                  </p>
                 </div>
-                <h3 style={{ fontSize: "14px", fontWeight: "bold", margin: "4px 0" }}>Faculty Examination Duty Tenancy Form — August 2026</h3>
-                <p style={{ fontSize: "11px", margin: 0 }}>
-                  <strong>Duty Timings:</strong> 1.30PM - 4.30PM | <strong>Frisking/Reporting Cell Timings:</strong> 12.55PM - 1.45PM
-                </p>
-              </div>
 
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
-                <thead>
-                  <tr style={{ background: "#f0f0f0" }}>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "35px" }}>SI. No</th>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "left" }}>Name of the Faculty</th>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "80px" }}>Department</th>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "95px" }}>Mobile No</th>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "130px" }}>Reporting Cell / Duty Type</th>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "110px" }}>Allotted Duty Dates (August)</th>
-                    <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "70px" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(tenancyData?.duties ?? []).map((fac: any) => (
-                    <tr key={fac.id}>
-                      <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold" }}>{fac.sl_no}</td>
-                      <td style={{ border: "1px solid #000", padding: "6px", fontWeight: "bold" }}>{fac.full_name}</td>
-                      <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{fac.department}</td>
-                      <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontFamily: "monospace" }}>{fac.mobile}</td>
-                      <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-                        <span style={{ fontWeight: "bold" }}>{fac.reporting_cell}</span>
-                        <div style={{ fontSize: "9px", color: "#444" }}>({fac.duty_type})</div>
-                      </td>
-                      <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold", fontFamily: "monospace", fontSize: "12px", color: "#1e3a8a" }}>
-                        {fac.duties_dates}
-                      </td>
-                      <td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
-                        <button
-                          onClick={() => openEdit(fac)}
-                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border rounded text-[10px] font-sans print:hidden"
-                        >
-                          Edit
-                        </button>
-                      </td>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                  <thead>
+                    <tr style={{ background: "#f0f0f0" }}>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "35px" }}>SI. No</th>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "left" }}>Name of the Faculty</th>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "80px" }}>Department</th>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "95px" }}>Mobile No</th>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "130px" }}>Reporting Cell / Duty Type</th>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "110px" }}>Allotted Duty Dates (August)</th>
+                      <th style={{ border: "1px solid #000", padding: "6px", textAlign: "center", width: "70px" }}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {(tenancyData?.duties ?? []).map((fac: any) => (
+                      <tr key={fac.id}>
+                        <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold" }}>{fac.sl_no}</td>
+                        <td style={{ border: "1px solid #000", padding: "6px", fontWeight: "bold" }}>{fac.full_name}</td>
+                        <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{fac.department}</td>
+                        <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontFamily: "monospace" }}>{fac.mobile}</td>
+                        <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+                          <span style={{ fontWeight: "bold" }}>{fac.reporting_cell}</span>
+                          <div style={{ fontSize: "9px", color: "#444" }}>({fac.duty_type})</div>
+                        </td>
+                        <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold", fontFamily: "monospace", fontSize: "12px", color: "#1e3a8a" }}>
+                          {fac.duties_dates}
+                        </td>
+                        <td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
+                          <button
+                            onClick={() => openEdit(fac)}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border rounded text-[10px] font-sans print:hidden cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
 
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "40px", fontSize: "11px" }}>
-                <div>
-                  <p>Verified by HOD / Department Coordinator</p>
-                  <div style={{ marginTop: "30px", borderTop: "1px solid #000", width: "180px" }} />
-                </div>
-                <div>
-                  <p>Chief Superintendent of Examinations</p>
-                  <div style={{ marginTop: "30px", borderTop: "1px solid #000", width: "180px" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "40px", fontSize: "11px" }}>
+                  <div>
+                    <p>Verified by HOD / Department Coordinator</p>
+                    <div style={{ marginTop: "30px", borderTop: "1px solid #000", width: "180px" }} />
+                  </div>
+                  <div>
+                    <p>Chief Superintendent of Examinations</p>
+                    <div style={{ marginTop: "30px", borderTop: "1px solid #000", width: "180px" }} />
+                  </div>
                 </div>
               </div>
             </div>

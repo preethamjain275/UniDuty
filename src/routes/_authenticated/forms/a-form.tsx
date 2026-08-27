@@ -23,7 +23,17 @@ export const Route = createFileRoute("/_authenticated/forms/a-form")({
   component: AFormPage,
 });
 
-function AFormPrint({ form, onDelete }: { form: any; onDelete: any }) {
+function AFormPrint({
+  form,
+  onDelete,
+  onTogglePresence,
+  isAdmin,
+}: {
+  form: any;
+  onDelete: any;
+  onTogglePresence: any;
+  isAdmin: boolean;
+}) {
   if (!form) return null;
   return (
     <div
@@ -72,11 +82,11 @@ function AFormPrint({ form, onDelete }: { form: any; onDelete: any }) {
             <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "70px" }}>Room No</th>
             <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "left" }}>Faculty Name</th>
             <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "75px" }}>No of Booklets Issued</th>
-            <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "80px" }}>Signature</th>
+            <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "140px" }}>Signature / Attendance</th>
             <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "75px" }}>No of Books Used</th>
             <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "80px" }}>No of Books Returned (Unused)</th>
             <th style={{ border: "1px solid #000", padding: "6px", fontSize: "10px", textAlign: "center", width: "70px" }}>Remarks</th>
-            <th className="print:hidden" style={{ border: "1px solid #000", padding: "4px", width: "50px" }}>Action</th>
+            {isAdmin && <th className="print:hidden" style={{ border: "1px solid #000", padding: "4px", width: "50px" }}>Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -85,15 +95,51 @@ function AFormPrint({ form, onDelete }: { form: any; onDelete: any }) {
               <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.floor}</td>
               <td style={{ border: "1px solid #000", padding: "4px 6px", fontWeight: "bold", textAlign: "center" }}>{row.room_no}</td>
               <td style={{ border: "1px solid #000", padding: "4px 6px", fontWeight: "bold" }}>{row.faculty_name}</td>
-              {/* Space left blank for manual entry */}
               <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_issued}</td>
-              <td style={{ border: "1px solid #000", padding: "16px 6px" }}>{/* Signature space */}</td>
+              
+              {/* Signature space with toggle buttons on screen & tick/cross on print */}
+              <td style={{ border: "1px solid #000", padding: "8px 4px", textAlign: "center", position: "relative" }}>
+                {/* On Web: Interactive Toggle Buttons */}
+                <div className="print:hidden flex items-center justify-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onTogglePresence(row.id, "present")}
+                    className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all cursor-pointer ${
+                      row.presence === "present"
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+                    }`}
+                  >
+                    Present
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onTogglePresence(row.id, "absent")}
+                    className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all cursor-pointer ${
+                      row.presence === "absent"
+                        ? "bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+                    }`}
+                  >
+                    Absent
+                  </button>
+                </div>
+                
+                {/* On Print: Shows check mark or cross mark */}
+                <div className="print-only" style={{ display: "none", fontSize: "14px", fontWeight: "900" }}>
+                  {row.presence === "present" ? "✓" : row.presence === "absent" ? "✗" : ""}
+                </div>
+              </td>
+
               <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_used}</td>
               <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_returned}</td>
               <td style={{ border: "1px solid #000", padding: "4px 6px", fontSize: "10px" }}>{row.remarks}</td>
-              <td className="print:hidden" style={{ border: "1px solid #000", padding: "2px", textAlign: "center" }}>
-                <button onClick={() => onDelete(row.id)} className="text-red-500 hover:text-red-700 text-xs">Del</button>
-              </td>
+              
+              {isAdmin && (
+                <td className="print:hidden" style={{ border: "1px solid #000", padding: "2px", textAlign: "center" }}>
+                  <button onClick={() => onDelete(row.id)} className="text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Del</button>
+                </td>
+              )}
             </tr>
           ))}
           {/* Empty rows to fill sheet */}
@@ -107,7 +153,7 @@ function AFormPrint({ form, onDelete }: { form: any; onDelete: any }) {
               <td style={{ border: "1px solid #000" }}>&nbsp;</td>
               <td style={{ border: "1px solid #000" }}>&nbsp;</td>
               <td style={{ border: "1px solid #000" }}>&nbsp;</td>
-              <td className="print:hidden" style={{ border: "1px solid #000" }}>&nbsp;</td>
+              {isAdmin && <td className="print:hidden" style={{ border: "1px solid #000" }}>&nbsp;</td>}
             </tr>
           ))}
         </tbody>
@@ -138,6 +184,7 @@ function AFormPage() {
   const getAFormFn = useServerFn(getAFormData);
   const createDutyFn = useServerFn(createDuty);
   const deleteDutyFn = useServerFn(deleteDuty);
+  const updateAFRowFn = useServerFn(updateAFRow);
 
   const [floorFilter, setFloorFilter] = useState("all");
   const [openAdd, setOpenAdd] = useState(false);
@@ -146,7 +193,6 @@ function AFormPage() {
   const { data: formData, isLoading } = useQuery({
     queryKey: ["a-form-data", floorFilter],
     queryFn: () => getAFormFn({ data: { floor: floorFilter } } as any),
-    enabled: isAdmin,
   });
 
   const addMut = useMutation({
@@ -166,30 +212,33 @@ function AFormPage() {
     },
   });
 
+  const togglePresenceMut = useMutation({
+    mutationFn: ({ id, presence }: { id: string; presence: string }) =>
+      updateAFRowFn({ data: { dutyId: id, presence } } as any),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["a-form-data"] });
+      toast.success("Faculty presence status updated");
+    },
+  });
+
   function handlePrint() {
     const content = document.getElementById("a-form-print");
     if (!content) return;
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html><head><title>A-Form (Floorwise)</title>
-      <style>@media print { body { margin: 0; } .print\\:hidden { display: none !important; } } body { font-family: 'Times New Roman', serif; }</style>
+      <style>
+        @media print { 
+          body { margin: 0; } 
+          .print\\:hidden { display: none !important; } 
+          .print-only { display: block !important; }
+        } 
+        body { font-family: 'Times New Roman', serif; }
+        .print-only { display: none; }
+      </style>
     </head><body>${content.innerHTML}</body></html>`);
     w.document.close();
     w.print();
-  }
-
-  if (!isAdmin) {
-    return (
-      <AppShell title="A Form — Access Restricted">
-        <div className="glass rounded-2xl p-12 text-center flex flex-col items-center gap-3">
-          <ShieldAlert className="size-12 text-destructive" />
-          <h2 className="text-lg font-semibold">Admin Access Required</h2>
-          <p className="text-sm text-muted-foreground max-w-md">
-            A-Form is strictly managed by the Examination Cell Admin. Faculty members can access their duties and the Tenancy Form from the main menu.
-          </p>
-        </div>
-      </AppShell>
-    );
   }
 
   return (
@@ -211,9 +260,11 @@ function AFormPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full btn-3d" onClick={() => setOpenAdd(true)}>
-              <Plus className="size-4 mr-1" /> Add Faculty Entry
-            </Button>
+            {isAdmin && (
+              <Button className="w-full btn-3d animate-fade-in" onClick={() => setOpenAdd(true)}>
+                <Plus className="size-4 mr-1" /> Add Faculty Entry
+              </Button>
+            )}
             {formData && (
               <Button className="w-full" variant="outline" onClick={handlePrint}>
                 <Printer className="size-4" /> Print A-Form
@@ -227,12 +278,21 @@ function AFormPage() {
             <div className="glass rounded-2xl p-12 text-center text-muted-foreground">Loading A-Form data…</div>
           ) : formData ? (
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="border-b border-foreground/10 px-5 py-3 flex items-center justify-between">
+              <div className="border-b border-foreground/10 px-5 py-3 flex items-center justify-between bg-foreground/[0.02]">
                 <h2 className="font-semibold text-sm">Preview A-Form ({formData.subtitle})</h2>
                 <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="size-4" />Print</Button>
               </div>
-              <div className="overflow-auto p-4 bg-white rounded-b-2xl">
-                <AFormPrint form={formData} onDelete={(id: string) => delMut.mutate(id)} />
+              
+              {/* Horizontal Scroll Support for Mobile Screens */}
+              <div className="w-full overflow-x-auto p-4 bg-white rounded-b-2xl scrollbar-thin">
+                <div className="min-w-[794px]">
+                  <AFormPrint
+                    form={formData}
+                    onDelete={(id: string) => delMut.mutate(id)}
+                    onTogglePresence={(id: string, presence: string) => togglePresenceMut.mutate({ id, presence })}
+                    isAdmin={isAdmin}
+                  />
+                </div>
               </div>
             </div>
           ) : null}

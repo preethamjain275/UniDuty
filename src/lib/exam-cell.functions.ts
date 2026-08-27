@@ -347,6 +347,7 @@ export const getAFormData = createServerFn({ method: "POST" })
         booklets_used: d.booklets_used ?? "",     // Blank space for manual entry
         booklets_returned: d.booklets_returned ?? "", // Blank space for manual entry
         remarks: d.duty_role ?? "",
+        presence: d.presence ?? "present",
       })),
     };
   });
@@ -363,6 +364,7 @@ export const updateAFRow = createServerFn({ method: "POST" })
       if (data.booklets_used !== undefined) d.booklets_used = data.booklets_used;
       if (data.booklets_returned !== undefined) d.booklets_returned = data.booklets_returned;
       if (data.remarks) d.duty_role = data.remarks;
+      if (data.presence !== undefined) d.presence = data.presence;
     }
     return { ok: true };
   });

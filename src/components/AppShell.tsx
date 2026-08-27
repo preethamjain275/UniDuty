@@ -54,7 +54,6 @@ const NAV = [
 ] as const;
 
 const ADMIN_ONLY = new Set<string>([
-  "/forms/a-form",
   "/settings",
 ]);
 

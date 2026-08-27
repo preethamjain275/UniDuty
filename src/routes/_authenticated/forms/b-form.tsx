@@ -179,8 +179,10 @@ function BFormPage() {
                 <h2 className="font-semibold text-sm">Preview B-Form — Room {formData.room_no}</h2>
                 <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="size-4" />Print</Button>
               </div>
-              <div className="overflow-auto p-4 bg-white rounded-b-2xl">
-                <BFormPrint form={formData} />
+              <div className="w-full overflow-x-auto p-4 bg-white rounded-b-2xl scrollbar-thin">
+                <div className="min-w-[794px]">
+                  <BFormPrint form={formData} />
+                </div>
               </div>
             </div>
           ) : (
