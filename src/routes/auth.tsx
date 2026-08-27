@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { GraduationCap, Lock, User, Info } from "lucide-react";
+import { GraduationCap, Lock, User, Info, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { listTeachers } from "@/lib/invigilation.functions";
 
@@ -23,6 +23,7 @@ function AuthPage() {
   
   const [empId, setEmpId] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [teachers, setTeachers] = useState<any[]>([]);
 
@@ -114,7 +115,10 @@ function AuthPage() {
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="pl-9 bg-background/50" />
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="pl-9 pr-10 bg-background/50" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
                 </div>
               </div>
               
@@ -139,7 +143,10 @@ function AuthPage() {
                 <Label htmlFor="adminPassword">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="adminPassword" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="pl-9 bg-background/50" />
+                  <Input id="adminPassword" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="pl-9 pr-10 bg-background/50" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
                 </div>
               </div>
               
