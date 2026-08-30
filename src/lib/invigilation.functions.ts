@@ -75,8 +75,8 @@ const lastNamesList = [
 const depts = ["Computer Science", "Electrical", "Mechanical", "Civil", "Electronics", "Information Technology"];
 const sections = ["A", "B", "C", "D", "E"];
 
-// 5 Teachers / Staff (For specific admin mock requirement)
-const MOCK_TEACHERS = Array.from({ length: 5 }, (_, i) => {
+// 30 Teachers / Staff (Rich pool of teaching faculty & checking staff)
+const MOCK_TEACHERS = Array.from({ length: 30 }, (_, i) => {
   const fn = firstNamesList[i % firstNamesList.length];
   const ln = lastNamesList[(i * 3 + Math.floor(i / firstNamesList.length)) % lastNamesList.length];
   const fullName = `${i % 2 === 1 ? "Mr." : "Dr."} ${fn} ${ln}`;
@@ -634,22 +634,29 @@ export const getExam = createServerFn({ method: "POST" })
           };
         });
       } else {
+        const primaryTeacher = teachers[rIdx % teachers.length];
+        let secondaryIdx = (rIdx + 1) % teachers.length;
+        if (teachers.length > 1 && teachers[secondaryIdx].id === primaryTeacher.id) {
+          secondaryIdx = (rIdx + 2) % teachers.length;
+        }
+        const secondaryTeacher = teachers[secondaryIdx];
+
         hallDuties = [
           {
             id: `alloc-${rIdx}-1`,
-            teacher_id: teachers[rIdx % teachers.length].id,
+            teacher_id: primaryTeacher.id,
             duty_role: "primary",
             status: "accepted",
             cross_dept_fallback: false,
-            teacher: teachers[rIdx % teachers.length],
+            teacher: primaryTeacher,
           },
           {
             id: `alloc-${rIdx}-2`,
-            teacher_id: teachers[(rIdx + 25) % teachers.length].id,
+            teacher_id: secondaryTeacher.id,
             duty_role: "secondary",
             status: "accepted",
             cross_dept_fallback: false,
-            teacher: teachers[(rIdx + 25) % teachers.length],
+            teacher: secondaryTeacher,
           },
         ];
       }

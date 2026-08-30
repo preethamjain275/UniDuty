@@ -111,16 +111,17 @@ export function buildAllocationPlan(params: {
     slot: RoomSlot,
     needSenior: boolean,
     allowFallback: boolean,
+    roomAssignedIds?: Set<string>,
   ): { candidate: Candidate; isFallback: boolean } | null => {
-    const avail = primaryPool.filter((c) => !assignedIds.has(c.id));
+    const avail = primaryPool.filter((c) => !assignedIds.has(c.id) && !roomAssignedIds?.has(c.id));
     const seniorAvail = needSenior ? avail.filter((c) => c.is_senior) : [];
     const from = seniorAvail.length > 0 ? seniorAvail : avail;
     const picked = sortByFairness(from, slot)[0];
     if (picked) return { candidate: picked, isFallback: false };
 
-    // Fallback: use own-dept candidate
+    // Fallback: use own-dept candidate (excluding candidates already assigned in this room)
     if (allowFallback) {
-      const fbAvail = fallbackPool.filter((c) => !assignedIds.has(c.id));
+      const fbAvail = fallbackPool.filter((c) => !assignedIds.has(c.id) && !roomAssignedIds?.has(c.id));
       const fbPicked = sortByFairness(fbAvail, slot)[0];
       if (fbPicked) {
         conflicts.push(
@@ -134,14 +135,16 @@ export function buildAllocationPlan(params: {
 
   // --- Primary & Secondary slot assignment ---
   for (const slot of ordered) {
+    const roomAssignedIds = new Set<string>();
     for (let i = 0; i < slot.required; i++) {
-      const result = pick(slot, i === 0 && slot.required > 1, true);
+      const result = pick(slot, i === 0 && slot.required > 1, true, roomAssignedIds);
       if (!result) {
         conflicts.push(`No invigilator available for ${slot.roomNumber} (slot ${i + 1})`);
         continue;
       }
       const { candidate, isFallback } = result;
       assignedIds.add(candidate.id);
+      roomAssignedIds.add(candidate.id);
       candidate.duties += 1;
       candidate.lastFloor = slot.floor;
       duties.push({
