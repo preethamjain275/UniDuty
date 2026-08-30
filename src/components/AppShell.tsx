@@ -124,7 +124,8 @@ export function AppShell({
     queryFn: () => emergenciesFn(),
     enabled: hasSession && Boolean(me?.isAdmin),
     retry: false,
-    refetchInterval: 20000,
+    refetchInterval: 60000,
+    staleTime: 60000,
   });
 
   const { data: staffRequests } = useQuery({
@@ -132,7 +133,8 @@ export function AppShell({
     queryFn: () => staffReqFn(),
     enabled: hasSession && Boolean(me?.isAdmin),
     retry: false,
-    refetchInterval: 20000,
+    refetchInterval: 60000,
+    staleTime: 60000,
   });
 
   const unread =

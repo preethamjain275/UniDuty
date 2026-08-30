@@ -202,10 +202,10 @@ function Stat({ label, value, hint, icon: Icon }: { label: string; value: number
 
 function DashboardPage() {
   const fn = useServerFn(getDashboard);
-  const { data, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: () => fn(), refetchInterval: 10000 });
+  const { data, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: () => fn(), refetchInterval: 60000, staleTime: 60000 });
   const { data: me } = useMe();
   const dutiesFn = useServerFn(myDuties);
-  const { data: duties } = useQuery({ queryKey: ["my-duties"], queryFn: () => me?.profile?.id ? dutiesFn({ data: { teacherId: me.profile.id } }) : [], enabled: !!me?.profile?.id, refetchInterval: 10000 });
+  const { data: duties } = useQuery({ queryKey: ["my-duties"], queryFn: () => me?.profile?.id ? dutiesFn({ data: { teacherId: me.profile.id } }) : [], enabled: !!me?.profile?.id, refetchInterval: 60000, staleTime: 60000 });
   const isAdmin = Boolean(me?.isAdmin);
 
   const [students, setStudents] = useState<any[]>([]);

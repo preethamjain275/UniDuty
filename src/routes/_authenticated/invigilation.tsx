@@ -39,7 +39,7 @@ function InvigilationPage() {
   const updateFn = useServerFn(updateDuty);
   const deleteFn = useServerFn(deleteDuty);
 
-  const { data: duties = [], isLoading } = useQuery({ queryKey: ["duties"], queryFn: () => listFn(), refetchInterval: 10000 });
+  const { data: duties = [], isLoading } = useQuery({ queryKey: ["duties"], queryFn: () => listFn(), refetchInterval: 60000, staleTime: 60000 });
 
   const [openAssign, setOpenAssign] = useState(false);
   const [editingDuty, setEditingDuty] = useState<any>(null);

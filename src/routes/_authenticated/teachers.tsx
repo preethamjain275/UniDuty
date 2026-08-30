@@ -58,7 +58,7 @@ function TeachersPage() {
   const activeFn = useServerFn(setTeacherActive);
   const upsertFn = useServerFn(upsertTeacher);
   const importStaffFn = useServerFn(importStaff);
-  const { data } = useQuery({ queryKey: ["teachers"], queryFn: () => listFn(), refetchInterval: 10000 });
+  const { data } = useQuery({ queryKey: ["teachers"], queryFn: () => listFn(), refetchInterval: 60000, staleTime: 60000 });
   const upsertMutation = useMutation({
     mutationFn: (teacherData: any) => upsertFn({ data: teacherData }),
     onSuccess: () => {

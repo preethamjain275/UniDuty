@@ -191,7 +191,8 @@ function SeatingPage() {
     queryKey: ["seating"],
     queryFn: () => listFn(),
     enabled: isAdmin,
-    refetchInterval: 10000,
+    refetchInterval: 60000,
+    staleTime: 60000,
   });
 
   const genMut = useMutation({

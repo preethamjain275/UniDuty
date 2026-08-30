@@ -60,11 +60,11 @@ function NotificationsPage() {
   const createIncidentFn = useServerFn(createFacultyIncident);
   const myDutiesFn = useServerFn(myDuties);
 
-  const { data: alerts } = useQuery({ queryKey: ["emergencies"], queryFn: () => emergenciesFn(), refetchInterval: 5000 });
-  const { data: requests } = useQuery({ queryKey: ["staff-requests"], queryFn: () => staffReqFn(), refetchInterval: 5000 });
+  const { data: alerts } = useQuery({ queryKey: ["emergencies"], queryFn: () => emergenciesFn(), refetchInterval: 30000 });
+  const { data: requests } = useQuery({ queryKey: ["staff-requests"], queryFn: () => staffReqFn(), refetchInterval: 30000 });
   const { data: staff } = useQuery({ queryKey: ["teachers"], queryFn: () => teachersFn(), enabled: isAdmin });
-  const { data: notices = [] } = useQuery({ queryKey: ["admin-notices"], queryFn: () => listNoticesFn(), refetchInterval: 5000 });
-  const { data: duties = [] } = useQuery({ queryKey: ["my-duties"], queryFn: () => myDutiesFn(), enabled: !isAdmin, refetchInterval: 5000 });
+  const { data: notices = [] } = useQuery({ queryKey: ["admin-notices"], queryFn: () => listNoticesFn(), refetchInterval: 30000 });
+  const { data: duties = [] } = useQuery({ queryKey: ["my-duties"], queryFn: () => myDutiesFn(), enabled: !isAdmin, refetchInterval: 30000 });
 
   const [newNoticeTitle, setNewNoticeTitle] = useState("");
   const [newNoticeContent, setNewNoticeContent] = useState("");

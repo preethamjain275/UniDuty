@@ -40,7 +40,8 @@ function EmergencyPage() {
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["emergencies"],
     queryFn: () => listFn(),
-    refetchInterval: 5000,
+    refetchInterval: 30000,
+    staleTime: 30000,
   });
 
   const [form, setForm] = useState({
