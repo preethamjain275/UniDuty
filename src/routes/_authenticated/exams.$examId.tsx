@@ -125,84 +125,211 @@ function ExamDetailPage() {
   const exam = data?.exam;
   const published = exam?.status === "published";
 
-  function exportDuties() {
+  function exportDutiesPdf() {
     if (!data) return;
-    const rows: (string | number)[][] = [
-      ["Exam", "Date", "Start", "Hall", "Floor", "Seats", "Role", "Staff", "Department", "Status"],
-    ];
+    let tableRowsHtml = "";
+    let slNo = 1;
+
     for (const hall of data.halls) {
       for (const d of hall.duties) {
-        rows.push([
-          exam?.name ?? "",
-          exam?.exam_date ?? "",
-          String(exam?.start_time ?? "").slice(0, 5),
-          hall.room?.room_number ?? "",
-          hall.room?.floor ?? "",
-          hall.seatFrom ? `${hall.seatFrom}-${hall.seatTo}` : "",
-          ROLE_LABEL[d.duty_role] ?? d.duty_role,
-          d.teacher?.full_name ?? "",
-          d.teacher?.department ?? "",
-          d.status,
-        ]);
+        const roleName = ROLE_LABEL[d.duty_role] ?? d.duty_role;
+        tableRowsHtml += `
+          <tr>
+            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">${slNo++}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-weight: bold;">${hall.room?.room_number ?? "—"}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">${hall.room?.floor ?? "1"}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px;">${roleName}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-weight: bold;">${d.teacher?.full_name ?? "—"}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px;">${d.teacher?.department ?? "—"}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center; text-transform: uppercase; font-size: 10px; font-weight: bold; color: #15803d;">CONFIRMED</td>
+          </tr>
+        `;
       }
     }
+
     if (exam?.duration_minutes >= 180 && data.reliefByFloor) {
       Object.entries(data.reliefByFloor).forEach(([floor, reliefDuties]: [string, any]) => {
         for (const r of reliefDuties) {
-          rows.push([
-            exam?.name ?? "",
-            exam?.exam_date ?? "",
-            String(exam?.start_time ?? "").slice(0, 5),
-            "Floor Rotation",
-            floor,
-            "",
-            "Relief Invigilator",
-            r.teacher?.full_name ?? "",
-            r.teacher?.department ?? "",
-            r.status,
-          ]);
+          tableRowsHtml += `
+            <tr style="background-color: #fcfcfc;">
+              <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">${slNo++}</td>
+              <td style="border: 1px solid #000; padding: 6px 8px;">Floor ${floor} (Relief)</td>
+              <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">${floor}</td>
+              <td style="border: 1px solid #000; padding: 6px 8px;">Relief Invigilator</td>
+              <td style="border: 1px solid #000; padding: 6px 8px; font-weight: bold;">${r.teacher?.full_name ?? "—"}</td>
+              <td style="border: 1px solid #000; padding: 6px 8px;">${r.teacher?.department ?? "—"}</td>
+              <td style="border: 1px solid #000; padding: 6px 8px; text-align: center; text-transform: uppercase; font-size: 10px; font-weight: bold; color: #15803d;">CONFIRMED</td>
+            </tr>
+          `;
         }
       });
     }
+
     for (const s of data.standby) {
-      rows.push([
-        exam?.name ?? "",
-        exam?.exam_date ?? "",
-        String(exam?.start_time ?? "").slice(0, 5),
-        "Floor standby",
-        s.floor ?? "",
-        "",
-        "Replacement staff",
-        s.teacher?.full_name ?? "",
-        s.teacher?.department ?? "",
-        "",
-      ]);
+      tableRowsHtml += `
+        <tr style="background-color: #f9f9f9;">
+          <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">${slNo++}</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Floor ${s.floor} (Standby)</td>
+          <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">${s.floor}</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Replacement Staff</td>
+          <td style="border: 1px solid #000; padding: 6px 8px; font-weight: bold;">${s.teacher?.full_name ?? "—"}</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">${s.teacher?.department ?? "—"}</td>
+          <td style="border: 1px solid #000; padding: 6px 8px; text-align: center; text-transform: uppercase; font-size: 10px; font-weight: bold; color: #1d4ed8;">STANDBY</td>
+        </tr>
+      `;
     }
-    downloadCsv(`duty-chart-${exam?.exam_date ?? "exam"}.csv`, rows);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Official Duty Chart — ${exam?.name ?? "Exam"}</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 15px; }
+          }
+          body { font-family: 'Times New Roman', Times, serif; margin: 20px; color: #000; background: #fff; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+          th, td { border: 1px solid #000 !important; padding: 6px 8px; }
+          th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; font-size: 10px; text-align: left; }
+        </style>
+      </head>
+      <body>
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+          <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">SRINIVASA RAMANUJAN INSTITUTE OF TECHNOLOGY</h2>
+          <h3 style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">EXAMINATION CELL — OFFICIAL FACULTY DUTY CHART</h3>
+          <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold;">
+            Examination: ${exam?.name ?? ""} | Date: ${exam?.exam_date ?? ""} | Time: ${exam?.start_time ?? "10:00 AM"} (${exam?.duration_minutes ?? 90} Min)
+          </p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align: center; width: 40px;">Sl. No.</th>
+              <th>Hall / Room</th>
+              <th style="text-align: center; width: 50px;">Floor</th>
+              <th>Duty Role</th>
+              <th>Faculty / Staff Name</th>
+              <th>Department</th>
+              <th style="text-align: center; width: 90px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 50px; font-size: 12px; font-weight: bold;">
+          <div style="border-top: 1px solid #000; width: 220px; text-align: center; padding-top: 6px;">
+            Exam Cell Coordinator
+          </div>
+          <div style="border-top: 1px solid #000; width: 220px; text-align: center; padding-top: 6px;">
+            Chief Controller of Examinations
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => {
+      w.print();
+    }, 250);
   }
 
-  function exportSeating() {
+  function exportSeatingPdf() {
     if (!data) return;
-    const rows: (string | number)[][] = [
-      ["Hall", "Floor", "Seat", "Serial", "Register No", "Student", "Department", "Invigilator"],
-    ];
+    let tableRowsHtml = "";
+    let slNo = 1;
+
     for (const hall of data.halls) {
-      const invigilator =
-        hall.duties.find((d) => d.duty_role === "primary")?.teacher?.full_name ?? "";
+      const invigilator = hall.duties.find((d) => d.duty_role === "primary")?.teacher?.full_name ?? "Unassigned";
+
       hall.students.forEach((s, i) => {
-        rows.push([
-          hall.room?.room_number ?? "",
-          hall.room?.floor ?? "",
-          i + 1,
-          s.serial_no,
-          s.register_no,
-          s.full_name,
-          s.department ?? "",
-          invigilator,
-        ]);
+        tableRowsHtml += `
+          <tr>
+            <td style="border: 1px solid #000; padding: 5px 6px; text-align: center;">${slNo++}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; font-weight: bold; text-align: center;">${hall.room?.room_number ?? "—"}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; text-align: center;">${hall.room?.floor ?? "1"}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; text-align: center; font-weight: bold;">${i + 1}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; font-family: monospace; text-align: center;">${s.serial_no ?? ""}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; font-family: monospace; font-weight: bold;">${s.register_no ?? ""}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; font-weight: bold;">${s.full_name ?? ""}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px;">${s.department ?? "—"}</td>
+            <td style="border: 1px solid #000; padding: 5px 6px; font-size: 10px;">${invigilator}</td>
+          </tr>
+        `;
       });
     }
-    downloadCsv(`seating-chart-${exam?.exam_date ?? "exam"}.csv`, rows);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Official Seating Allocation — ${exam?.name ?? "Exam"}</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 15px; }
+          }
+          body { font-family: 'Times New Roman', Times, serif; margin: 20px; color: #000; background: #fff; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+          th, td { border: 1px solid #000 !important; padding: 5px 6px; }
+          th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; font-size: 10px; text-align: left; }
+        </style>
+      </head>
+      <body>
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+          <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">SRINIVASA RAMANUJAN INSTITUTE OF TECHNOLOGY</h2>
+          <h3 style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">EXAMINATION CELL — STUDENT SEATING ALLOCATION LIST</h3>
+          <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold;">
+            Examination: ${exam?.name ?? ""} | Date: ${exam?.exam_date ?? ""} | Time: ${exam?.start_time ?? "10:00 AM"} (${exam?.duration_minutes ?? 90} Min)
+          </p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align: center; width: 40px;">Sl. No.</th>
+              <th style="text-align: center; width: 70px;">Hall No.</th>
+              <th style="text-align: center; width: 45px;">Floor</th>
+              <th style="text-align: center; width: 50px;">Seat No</th>
+              <th style="text-align: center; width: 55px;">Serial</th>
+              <th>Register / SRN</th>
+              <th>Student Name</th>
+              <th>Department</th>
+              <th>Hall Invigilator</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 50px; font-size: 12px; font-weight: bold;">
+          <div style="border-top: 1px solid #000; width: 220px; text-align: center; padding-top: 6px;">
+            Exam Cell Coordinator
+          </div>
+          <div style="border-top: 1px solid #000; width: 220px; text-align: center; padding-top: 6px;">
+            Chief Controller of Examinations
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => {
+      w.print();
+    }, 250);
   }
 
   return (
@@ -215,14 +342,14 @@ function ExamDetailPage() {
       }
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={() => exportDuties()} disabled={!data} className="no-print">
-            <Download className="size-4" /> Duty chart
+          <Button variant="outline" size="sm" onClick={() => exportDutiesPdf()} disabled={!data} className="no-print">
+            <Printer className="size-4 mr-1" /> Duty Chart PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={() => exportSeating()} disabled={!data} className="no-print">
-            <Download className="size-4" /> Seating
+          <Button variant="outline" size="sm" onClick={() => exportSeatingPdf()} disabled={!data} className="no-print">
+            <Printer className="size-4 mr-1" /> Seating PDF
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()} className="no-print">
-            <Printer className="size-4" /> Print
+            <Printer className="size-4 mr-1" /> Print Page
           </Button>
           {!isAdmin ? (
             <Badge variant="secondary" className="no-print">Faculty View · View Only</Badge>
