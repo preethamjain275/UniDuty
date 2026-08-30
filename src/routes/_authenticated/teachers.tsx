@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UserPlus, CheckCircle2, XCircle, Eye, KeyRound, User, Phone, MapPin, ShieldAlert, Building2, Mail, Save, BadgeInfo, Camera } from "lucide-react";
@@ -55,6 +57,7 @@ function TeachersPage() {
   const requestFn = useServerFn(requestStaff);
   const activeFn = useServerFn(setTeacherActive);
   const upsertFn = useServerFn(upsertTeacher);
+  const importStaffFn = useServerFn(importStaff);
   const { data } = useQuery({ queryKey: ["teachers"], queryFn: () => listFn(), refetchInterval: 10000 });
   const upsertMutation = useMutation({
     mutationFn: (teacherData: any) => upsertFn({ data: teacherData }),
@@ -108,7 +111,7 @@ function TeachersPage() {
         setImportRows(fakeRows);
         
         // Auto-import immediately without requiring manual confirmation
-        importStaff({ data: { rows: fakeRows, replaceExisting } })
+        importStaffFn({ data: { rows: fakeRows, replaceExisting } })
           .then((res) => {
             toast.success(`AI successfully extracted and imported ${res.importedCount} faculties from PDF.`);
             setImporting(false);
@@ -146,7 +149,7 @@ function TeachersPage() {
   };
 
   const importMutation = useMutation({
-    mutationFn: () => importStaff({ data: { rows: importRows, replaceExisting } }),
+    mutationFn: () => importStaffFn({ data: { rows: importRows, replaceExisting } }),
     onSuccess: (res) => {
       toast.success(`Successfully imported ${res.importedCount} staff members`);
       setImportOpen(false);
