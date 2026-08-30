@@ -75,11 +75,12 @@ const lastNamesList = [
 const depts = ["Computer Science", "Electrical", "Mechanical", "Civil", "Electronics", "Information Technology"];
 const sections = ["A", "B", "C", "D", "E"];
 
-// 30 Teachers / Staff (Rich pool of teaching faculty & checking staff)
-const MOCK_TEACHERS = Array.from({ length: 30 }, (_, i) => {
+// 60 Teachers / Staff (Ensuring 100% unique staff with 0 name repetition across all rooms)
+const MOCK_TEACHERS = Array.from({ length: 60 }, (_, i) => {
   const fn = firstNamesList[i % firstNamesList.length];
   const ln = lastNamesList[(i * 3 + Math.floor(i / firstNamesList.length)) % lastNamesList.length];
-  const fullName = `${i % 2 === 1 ? "Mr." : "Dr."} ${fn} ${ln}`;
+  const title = i % 2 === 1 ? "Mr." : "Dr.";
+  const fullName = `${title} ${fn} ${ln}`;
   const isNonTeaching = i % 2 === 1;
   const desigsTeaching = ["Professor", "Associate Professor", "Assistant Professor"];
   const desigsNonTeaching = ["Lab Superintendent", "System Administrator", "Hall Inspector", "Exam Invigilator", "Technical Assistant"];
@@ -88,7 +89,7 @@ const MOCK_TEACHERS = Array.from({ length: 30 }, (_, i) => {
     : desigsTeaching[i % desigsTeaching.length];
 
   const empId = `EMP100${i + 1}`;
-  const email = `${fn.toLowerCase()}.${ln.toLowerCase()}@snpsu.edu.in`;
+  const email = `${fn.toLowerCase()}.${ln.toLowerCase()}${i}@snpsu.edu.in`;
 
   return {
     id: empId,
@@ -614,16 +615,19 @@ export const getExam = createServerFn({ method: "POST" })
     const examAllocs = stateAllocations.filter((a) => a.exam_id === data.examId);
 
     let cursor = 0;
+    const globalAssignedTeacherIds = new Set<string>();
+
     const seatedHalls = rooms.map((r, rIdx) => {
       const seats = students.slice(cursor, cursor + 30);
       cursor += seats.length;
 
-      // Primary duties from allocations, fall back to deterministic mock
+      // Primary duties from allocations, fall back to deterministic unique mock
       const hallAllocs = examAllocs.filter((a) => a.room_id === r.id);
       let hallDuties;
       if (hallAllocs.length > 0) {
         hallDuties = hallAllocs.map((a) => {
           const t = teachers.find((x) => x.id === a.teacher_id) || teachers[rIdx % teachers.length];
+          globalAssignedTeacherIds.add(a.teacher_id);
           return {
             id: a.id,
             teacher_id: a.teacher_id,
@@ -634,12 +638,19 @@ export const getExam = createServerFn({ method: "POST" })
           };
         });
       } else {
-        const primaryTeacher = teachers[rIdx % teachers.length];
-        let secondaryIdx = (rIdx + 1) % teachers.length;
-        if (teachers.length > 1 && teachers[secondaryIdx].id === primaryTeacher.id) {
-          secondaryIdx = (rIdx + 2) % teachers.length;
-        }
-        const secondaryTeacher = teachers[secondaryIdx];
+        // Pick primary teacher (Invigilator) who has NOT been assigned to ANY room in this exam
+        const primaryTeacher =
+          teachers.find((t) => !globalAssignedTeacherIds.has(t.id) && t.staff_type !== "non_teaching") ||
+          teachers.find((t) => !globalAssignedTeacherIds.has(t.id)) ||
+          teachers[(rIdx * 2) % teachers.length];
+        globalAssignedTeacherIds.add(primaryTeacher.id);
+
+        // Pick secondary teacher (Checking Staff) who has NOT been assigned to ANY room in this exam
+        const secondaryTeacher =
+          teachers.find((t) => !globalAssignedTeacherIds.has(t.id) && t.staff_type === "non_teaching") ||
+          teachers.find((t) => !globalAssignedTeacherIds.has(t.id)) ||
+          teachers[(rIdx * 2 + 1) % teachers.length];
+        globalAssignedTeacherIds.add(secondaryTeacher.id);
 
         hallDuties = [
           {
