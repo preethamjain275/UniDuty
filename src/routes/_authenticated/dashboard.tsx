@@ -293,160 +293,78 @@ function DashboardPage() {
             )}
           </section>
 
-          {/* Form B / Attendance */}
-          {todaysDuty && (
-            <section className="mt-8">
-              <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <Users className="size-4 text-primary" /> Form B (Attendance)
-              </h2>
-              
-              <Tabs defaultValue="list" className="w-full">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                  <TabsList>
-                    <TabsTrigger value="list">Student List</TabsTrigger>
-                    <TabsTrigger value="summary">Summary</TabsTrigger>
-                  </TabsList>
-                  
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className="bg-background/50 text-muted-foreground border-border/50">
-                      Total: {myStudents.length}
-                    </Badge>
-                    <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20">
-                      Present: {myStudents.length - absentees.size}
-                    </Badge>
-                    <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/20">
-                      Absent: {absentees.size}
-                    </Badge>
+
+
+          {/* Admin-only metrics and charts */}
+          {isAdmin && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <Stat label="Today's exams" value={data.cards.todaysExams} hint={`${data.cards.upcomingExams} upcoming`} />
+                <Stat label="Halls in use today" value={data.cards.roomsInUseToday} hint={`${data.cards.totalRooms} halls total`} />
+                <Stat label="Assigned today" value={data.cards.assignedToday} hint={`${data.cards.standbyToday} standby reserved`} />
+                <Stat label="Pending acceptance" value={data.cards.pendingAcceptance} hint={`${data.cards.acceptedDuties} accepted`} />
+                <Stat label="Faculty on roll" value={data.cards.teachers} hint={`${data.cards.declinedDuties} declined duties`} />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="glass rounded-2xl p-5 lg:col-span-2">
+                  <h2 className="text-sm font-semibold">Workload distribution (top faculty)</h2>
+                  <div className="mt-4 h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.workload}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} height={50} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Bar dataKey="duties" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
-                <TabsContent value="list" className="space-y-4">
-                  <div className="glass rounded-xl border border-border/50 overflow-hidden max-h-[60vh] overflow-y-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-muted/80 backdrop-blur-md sticky top-0 z-10 text-xs uppercase text-muted-foreground">
-                        <tr>
-                          <th className="px-3 sm:px-4 py-2 sm:py-3">Seat</th>
-                          <th className="px-3 sm:px-4 py-2 sm:py-3">Register No</th>
-                          <th className="px-3 sm:px-4 py-2 sm:py-3">Student Name</th>
-                          <th className="px-3 sm:px-4 py-2 sm:py-3 text-right">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/50">
-                        {myStudents.map((s, idx) => {
-                          const isAbsent = absentees.has(s.id);
-                          return (
-                            <tr key={s.id} className={"hover:bg-muted/30 transition-colors " + (isAbsent ? "bg-destructive/5" : "")}>
-                              <td className="px-3 sm:px-4 py-2 sm:py-3 font-medium text-muted-foreground">{idx * 2 + 1}</td>
-                              <td className="px-3 sm:px-4 py-2 sm:py-3 font-semibold">{s.register_no}</td>
-                              <td className="px-3 sm:px-4 py-2 sm:py-3 truncate max-w-[120px] sm:max-w-none">{s.full_name}</td>
-                              <td className="px-3 sm:px-4 py-2 sm:py-3 text-right">
-                                <Button 
-                                  variant={isAbsent ? "destructive" : "outline"} 
-                                  size="sm"
-                                  className={"h-8 px-2 sm:px-3 text-xs " + (isAbsent ? "" : "text-muted-foreground")}
-                                  onClick={() => toggleAbsentee(s.id)}
-                                >
-                                  {isAbsent ? <><UserX className="size-3 mr-1"/> Absent</> : <><UserCheck className="size-3 mr-1"/> Present</>}
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </TabsContent>
-                <TabsContent value="summary">
-                  <Card className="glass">
-                    <CardContent className="p-6">
-                      <h3 className="text-lg font-medium mb-4">Attendance Summary</h3>
-                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                        <div className="bg-muted/50 p-2 sm:p-4 rounded-xl text-center">
-                          <div className="text-[10px] sm:text-sm text-muted-foreground">Total Assigned</div>
-                          <div className="text-xl sm:text-3xl font-bold mt-1">{myStudents.length}</div>
-                        </div>
-                        <div className="bg-green-500/10 p-2 sm:p-4 rounded-xl text-center border border-green-500/20">
-                          <div className="text-[10px] sm:text-sm text-green-700">Present</div>
-                          <div className="text-xl sm:text-3xl font-bold mt-1 text-green-700">{myStudents.length - absentees.size}</div>
-                        </div>
-                        <div className="bg-destructive/10 p-2 sm:p-4 rounded-xl text-center border border-destructive/20">
-                          <div className="text-[10px] sm:text-sm text-destructive">Absent</div>
-                          <div className="text-xl sm:text-3xl font-bold mt-1 text-destructive">{absentees.size}</div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </section>
+                <div className="glass rounded-2xl p-5">
+                  <h2 className="text-sm font-semibold">Faculty by department</h2>
+                  <DeptPieChart departments={data.departments} />
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="text-sm font-semibold">Floor utilisation</h2>
+                <div className="mt-4 h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.floors}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                      <XAxis dataKey="floor" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="duties" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Stat label="Today's exams" value={data.cards.todaysExams} hint={`${data.cards.upcomingExams} upcoming`} />
-            <Stat label="Halls in use today" value={data.cards.roomsInUseToday} hint={`${data.cards.totalRooms} halls total`} />
-            <Stat label="Assigned today" value={data.cards.assignedToday} hint={`${data.cards.standbyToday} standby reserved`} />
-            <Stat label="Pending acceptance" value={data.cards.pendingAcceptance} hint={`${data.cards.acceptedDuties} accepted`} />
-            <Stat label="Faculty on roll" value={data.cards.teachers} hint={`${data.cards.declinedDuties} declined duties`} />
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="glass rounded-2xl p-5 lg:col-span-2">
-              <h2 className="text-sm font-semibold">Workload distribution (top faculty)</h2>
-              <div className="mt-4 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.workload}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} height={50} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="duties" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="glass rounded-2xl p-5">
-              <h2 className="text-sm font-semibold">Faculty by department</h2>
-              <DeptPieChart departments={data.departments} />
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="glass rounded-2xl p-5 lg:col-span-2">
-              <h2 className="text-sm font-semibold">Floor utilisation</h2>
-              <div className="mt-4 h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.floors}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis dataKey="floor" tick={{ fontSize: 11 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="duties" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="glass rounded-2xl p-5">
-              <h2 className="text-sm font-semibold">Upcoming examinations</h2>
-              <ul className="mt-3 space-y-3">
-                {data.upcoming.length === 0 ? (
-                  <li className="text-sm text-muted-foreground">No examinations scheduled yet.</li>
-                ) : (
-                  data.upcoming.map((e) => (
-                    <li key={e.id} className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-3">
-                      <Link to="/exams/$examId" params={{ examId: e.id }} className="text-sm font-medium hover:underline">
-                        {e.name}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {e.exam_date} · {e.start_time.slice(0, 5)} · {e.duration_minutes} min ·{" "}
-                        {e.exam_type === "internal" ? "Internal" : "Semester"}
-                      </p>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
+          {/* Upcoming Examinations list */}
+          <div className="glass rounded-2xl p-5">
+            <h2 className="text-sm font-semibold">Upcoming examinations</h2>
+            <ul className="mt-3 space-y-3">
+              {data.upcoming.length === 0 ? (
+                <li className="text-sm text-muted-foreground">No examinations scheduled yet.</li>
+              ) : (
+                data.upcoming.map((e) => (
+                  <li key={e.id} className="rounded-xl border border-foreground/10 bg-foreground/[0.03] p-3">
+                    <Link to="/exams/$examId" params={{ examId: e.id }} className="text-sm font-medium hover:underline">
+                      {e.name}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      {e.exam_date} · {e.start_time.slice(0, 5)} · {e.duration_minutes} min ·{" "}
+                      {e.exam_type === "internal" ? "Internal" : "Semester"}
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@
 // =========================================================================
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getStateStudents } from "./invigilation.functions";
 
 const todayStr2 = new Date().toISOString().slice(0, 10);
 
@@ -131,12 +132,42 @@ export const OFFICIAL_PDF_SEATING = [
   { room_number: "A401", capacity: 30, srn_list: "25SUUBECS0451, 0452, 0453, 0454, 0455, 0456, 0457, 0458, 0459, 0460, 0461, 0462, 0463, 0464, 0465, 0466, 0467, 0468, 0469, 0470, 0471, 0472, 0473, 0474, 0475, 0476, 0477, 0478, 0479, 0480" },
 ];
 
+const STUDENT_NAMES_POOL = [
+  "Aarav Sharma", "Aditi Roy", "Ananya Bhat", "Bhavya Singh", "Chetan Kumar",
+  "Deepika P", "Divya N", "Gautam V", "Harshita M", "Kavya R",
+  "Manjunath K", "Nikhil S", "Pooja G", "Rahul M", "Rohan S",
+  "Sanjana P", "Shreya R", "Siddharth N", "Spoorthi V", "Tarun K",
+  "Varun M", "Yashwanth B", "Abhinav R", "Bhumika T", "Chandan S",
+  "Dhanush K", "Esha M", "Farhan A", "Gowri P", "Hemant L"
+];
+
 export let stateSeating: any[] = [];
 
-function buildSeatingRows() {
+export function buildSeatingRows() {
+  const currentStudents = getStateStudents();
+
   return OFFICIAL_PDF_SEATING.map((item, rIdx) => {
-    const srnArray = item.srn_list.split(",").map((s) => s.trim());
+    const hallMatch = currentStudents.filter(
+      (s: any) => s.hall === item.room_number || s.hall === `Block A-H-${item.room_number}`
+    );
+
+    const slice = hallMatch.length >= 5
+      ? hallMatch
+      : currentStudents.slice(rIdx * 30, (rIdx + 1) * 30);
+
     const invig = stateFacultyTenancy[rIdx % stateFacultyTenancy.length];
+
+    const mappedStudents = slice.map((st: any, idx: number) => ({
+      sr_no: idx + 1,
+      srn: st.register_no,
+      name: st.full_name,
+      department: st.department || "CSE",
+      booklet_no: st.booklet_no ?? `BK${String(rIdx * 30 + idx + 1).padStart(4, "0")}`,
+      presence: st.presence || "present",
+    }));
+
+    const srnListFormatted = mappedStudents.map((st: any) => st.srn).join(", ");
+
     return {
       id: `seating-${item.room_number}`,
       exam_id: "exam-1",
@@ -145,18 +176,11 @@ function buildSeatingRows() {
       session: "Afternoon",
       room_number: item.room_number,
       capacity: item.capacity,
-      seated: srnArray.length,
+      seated: mappedStudents.length,
       invigilator_name: invig.full_name,
       invigilator_dept: invig.department,
-      srn_list_formatted: item.srn_list,
-      students: srnArray.map((srn, idx) => ({
-        sr_no: idx + 1,
-        srn: srn.startsWith("25") || srn.startsWith("24") ? srn : `25SUUBECS${srn}`,
-        name: `Student ${idx + 1}`,
-        department: "CSE",
-        booklet_no: `BK${String(rIdx * 30 + idx + 1).padStart(4, "0")}`,
-        present: true,
-      })),
+      srn_list_formatted: srnListFormatted || item.srn_list,
+      students: mappedStudents,
     };
   });
 }
@@ -372,10 +396,32 @@ export const updateAFRow = createServerFn({ method: "POST" })
 export const getBFormData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data }: any) => {
-    const seatingList = stateSeating.length > 0 ? stateSeating : buildSeatingRows();
+    const seatingList = buildSeatingRows();
+    
+    // Preserve presence state if already set in stateSeating
+    if (stateSeating.length > 0) {
+      for (const room of seatingList) {
+        const oldRoom = stateSeating.find((r: any) => r.room_number === room.room_number);
+        if (oldRoom) {
+          for (const st of room.students) {
+            const oldSt = oldRoom.students.find((s: any) => s.srn === st.srn);
+            if (oldSt) {
+              if (oldSt.presence) st.presence = oldSt.presence;
+              if (oldSt.booklet_no) st.booklet_no = oldSt.booklet_no;
+            }
+          }
+        }
+      }
+    }
+    stateSeating = seatingList;
+
     const roomSeating = seatingList.find(
       (s: any) => s.room_number === data?.roomNumber || s.id === data?.seatingId
     ) ?? seatingList[0];
+
+    const totalCount = roomSeating.students.length;
+    const absenteesCount = roomSeating.students.filter((st: any) => st.presence === "absent").length;
+    const presentCount = totalCount - absenteesCount;
 
     return {
       formTitle: "B-forms — individual Rooms (only for exams)",
@@ -385,15 +431,76 @@ export const getBFormData = createServerFn({ method: "POST" })
       session: roomSeating.session,
       invigilator_name: roomSeating.invigilator_name,
       students: roomSeating.students,
-      absentees_count: "", // Blank for manual entry
-      total_count: "",     // Blank for manual entry
+      total_count: totalCount,
+      absentees_count: absenteesCount,
+      present_count: presentCount,
     };
+  });
+
+export const updateBStudentPresence = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data }: any) => {
+    if (stateSeating.length === 0) stateSeating = buildSeatingRows();
+    const roomSeating = stateSeating.find(
+      (s: any) => s.room_number === data?.roomNumber
+    );
+    if (roomSeating && roomSeating.students) {
+      const student = roomSeating.students.find(
+        (st: any) => st.srn === data.studentSrn || st.sr_no === data.studentSrNo
+      );
+      if (student) {
+        student.presence = data.presence;
+      }
+    }
+    const currentStudents = getStateStudents();
+    const stInState = currentStudents.find((s: any) => s.register_no === data.studentSrn);
+    if (stInState) {
+      stInState.presence = data.presence;
+    }
+    return { ok: true };
+  });
+
+export const updateBStudentBooklet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data }: any) => {
+    if (stateSeating.length === 0) stateSeating = buildSeatingRows();
+    const roomSeating = stateSeating.find(
+      (s: any) => s.room_number === data?.roomNumber
+    );
+    if (roomSeating && roomSeating.students) {
+      const student = roomSeating.students.find(
+        (st: any) => st.srn === data.studentSrn || st.sr_no === data.studentSrNo
+      );
+      if (student) {
+        student.booklet_no = data.bookletNo;
+      }
+    }
+    const currentStudents = getStateStudents();
+    const stInState = currentStudents.find((s: any) => s.register_no === data.studentSrn);
+    if (stInState) {
+      stInState.booklet_no = data.bookletNo;
+    }
+    return { ok: true };
   });
 
 export const listSeatingArrangements = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    if (stateSeating.length === 0) stateSeating = buildSeatingRows();
+    const seatingList = buildSeatingRows();
+    if (stateSeating.length > 0) {
+      for (const room of seatingList) {
+        const oldRoom = stateSeating.find((r: any) => r.room_number === room.room_number);
+        if (oldRoom) {
+          for (const st of room.students) {
+            const oldSt = oldRoom.students.find((s: any) => s.srn === st.srn);
+            if (oldSt && oldSt.presence) {
+              st.presence = oldSt.presence;
+            }
+          }
+        }
+      }
+    }
+    stateSeating = seatingList;
     return stateSeating;
   });
 

@@ -303,7 +303,14 @@ let stateMyDuties = [
 // In-memory state storage for dynamic additions and edits
 let stateExams = [...MOCK_EXAMS];
 let stateRooms = [...MOCK_ROOMS];
-let stateStudents: any[] = [];
+export let stateStudents: any[] = [...MOCK_STUDENTS];
+
+export function getStateStudents() {
+  if (!stateStudents || stateStudents.length === 0) {
+    stateStudents = [...MOCK_STUDENTS];
+  }
+  return stateStudents;
+}
 let stateTeachers = [...MOCK_TEACHERS];
 let stateStaffRequests = [...MOCK_STAFF_REQUESTS];
 let stateEmergencies = [...MOCK_EMERGENCIES];

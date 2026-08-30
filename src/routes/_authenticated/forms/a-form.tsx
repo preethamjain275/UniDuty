@@ -3,13 +3,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Printer, ShieldAlert, Filter, Plus, Edit, Trash2 } from "lucide-react";
+import { Printer, ShieldAlert, Filter, Plus, Users, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, useMe } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getAFormData, createDuty, updateAFRow, deleteDuty, stateFacultyTenancy } from "@/lib/exam-cell.functions";
 
@@ -90,58 +91,61 @@ function AFormPrint({
           </tr>
         </thead>
         <tbody>
-          {form.rows.map((row: any, i: number) => (
-            <tr key={row.id || i}>
-              <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.floor}</td>
-              <td style={{ border: "1px solid #000", padding: "4px 6px", fontWeight: "bold", textAlign: "center" }}>{row.room_no}</td>
-              <td style={{ border: "1px solid #000", padding: "4px 6px", fontWeight: "bold" }}>{row.faculty_name}</td>
-              <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_issued}</td>
-              
-              {/* Signature space with toggle buttons on screen & tick/cross on print */}
-              <td style={{ border: "1px solid #000", padding: "8px 4px", textAlign: "center", position: "relative" }}>
-                {/* On Web: Interactive Toggle Buttons */}
-                <div className="print:hidden flex items-center justify-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => onTogglePresence(row.id, "present")}
-                    className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all cursor-pointer ${
-                      row.presence === "present"
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
-                    }`}
-                  >
-                    Present
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onTogglePresence(row.id, "absent")}
-                    className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all cursor-pointer ${
-                      row.presence === "absent"
-                        ? "bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
-                    }`}
-                  >
-                    Absent
-                  </button>
-                </div>
+          {form.rows.map((row: any, i: number) => {
+            const isAbsent = row.presence === "absent";
+            return (
+              <tr key={row.id || i} style={{ background: isAbsent ? "#fef2f2" : "#ffffff" }}>
+                <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.floor}</td>
+                <td style={{ border: "1px solid #000", padding: "4px 6px", fontWeight: "bold", textAlign: "center" }}>{row.room_no}</td>
+                <td style={{ border: "1px solid #000", padding: "4px 6px", fontWeight: "bold" }}>{row.faculty_name}</td>
+                <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_issued}</td>
                 
-                {/* On Print: Shows check mark or cross mark */}
-                <div className="print-only" style={{ display: "none", fontSize: "14px", fontWeight: "900" }}>
-                  {row.presence === "present" ? "✓" : row.presence === "absent" ? "✗" : ""}
-                </div>
-              </td>
-
-              <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_used}</td>
-              <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_returned}</td>
-              <td style={{ border: "1px solid #000", padding: "4px 6px", fontSize: "10px" }}>{row.remarks}</td>
-              
-              {isAdmin && (
-                <td className="print:hidden" style={{ border: "1px solid #000", padding: "2px", textAlign: "center" }}>
-                  <button onClick={() => onDelete(row.id)} className="text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Del</button>
+                {/* Signature space with toggle buttons on screen & tick/cross on print */}
+                <td style={{ border: "1px solid #000", padding: "6px 4px", textAlign: "center", position: "relative" }}>
+                  {/* On Web: Interactive Toggle Buttons */}
+                  <div className="print:hidden flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onTogglePresence(row.id, "present")}
+                      className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all cursor-pointer ${
+                        !isAbsent
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+                      }`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onTogglePresence(row.id, "absent")}
+                      className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all cursor-pointer ${
+                        isAbsent
+                          ? "bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+                      }`}
+                    >
+                      Absent
+                    </button>
+                  </div>
+                  
+                  {/* On Print: Shows status */}
+                  <div className="print-only" style={{ display: "none", fontSize: "11px", fontWeight: "900" }}>
+                    {isAbsent ? "ABSENT" : "✓ Present"}
+                  </div>
                 </td>
-              )}
-            </tr>
-          ))}
+
+                <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_used}</td>
+                <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center" }}>{row.booklets_returned}</td>
+                <td style={{ border: "1px solid #000", padding: "4px 6px", fontSize: "10px" }}>{row.remarks}</td>
+                
+                {isAdmin && (
+                  <td className="print:hidden" style={{ border: "1px solid #000", padding: "2px", textAlign: "center" }}>
+                    <button onClick={() => onDelete(row.id)} className="text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Del</button>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
           {/* Empty rows to fill sheet */}
           {Array.from({ length: Math.max(0, 15 - form.rows.length) }, (_, idx) => (
             <tr key={`empty-${idx}`}>
@@ -195,6 +199,10 @@ function AFormPage() {
     queryFn: () => getAFormFn({ data: { floor: floorFilter } } as any),
   });
 
+  const totalFaculty = formData?.rows?.length ?? 0;
+  const absenteesFaculty = formData?.rows?.filter((r: any) => r.presence === "absent").length ?? 0;
+  const presentFaculty = totalFaculty - absenteesFaculty;
+
   const addMut = useMutation({
     mutationFn: () => createDutyFn({ data: { exam_id: "exam-1", ...addForm } } as any),
     onSuccess: () => {
@@ -229,24 +237,41 @@ function AFormPage() {
     w.document.write(`<!DOCTYPE html><html><head><title>A-Form (Floorwise)</title>
       <style>
         @media print { 
-          body { margin: 0; } 
+          body { margin: 0; padding: 0; } 
           .print\\:hidden { display: none !important; } 
           .print-only { display: block !important; }
         } 
-        body { font-family: 'Times New Roman', serif; }
+        body { font-family: 'Times New Roman', serif; margin: 20px; }
         .print-only { display: none; }
       </style>
     </head><body>${content.innerHTML}</body></html>`);
     w.document.close();
-    w.print();
+    w.focus();
+    setTimeout(() => {
+      w.print();
+    }, 250);
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppShell title="A Form — Access Restricted">
+        <div className="glass rounded-2xl p-12 text-center flex flex-col items-center gap-3">
+          <ShieldAlert className="size-12 text-destructive" />
+          <h2 className="text-lg font-semibold">Admin Access Required</h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            A-Form (Floor-wise Faculty Invigilation) is managed strictly by the Examination Cell Admin.
+          </p>
+        </div>
+      </AppShell>
+    );
   }
 
   return (
-    <AppShell title="A-Form — Invigilators / Faculty (Floor-wise)" description="Official Floor-wise Invigilator & Booklet Control Form (Pre-filled Floor, Room & Faculty)">
+    <AppShell title="A-Form — Invigilators / Faculty (Floor-wise)" description="Official Floor-wise Invigilator & Booklet Control Form (Admin Only)">
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4">
           <div className="glass rounded-2xl p-5 space-y-4">
-            <h2 className="font-semibold flex items-center gap-2"><Filter className="size-4" />Floor Filter & Actions</h2>
+            <h2 className="font-semibold flex items-center gap-2"><Filter className="size-4 text-primary" />Floor Filter & Actions</h2>
             <div className="grid gap-2">
               <Label>Select Floor</Label>
               <Select value={floorFilter} onValueChange={setFloorFilter}>
@@ -267,10 +292,36 @@ function AFormPage() {
             )}
             {formData && (
               <Button className="w-full" variant="outline" onClick={handlePrint}>
-                <Printer className="size-4" /> Print A-Form
+                <Printer className="size-4" /> Print / Export PDF A-Form
               </Button>
             )}
           </div>
+
+          {formData && (
+            <div className="glass rounded-2xl p-5 space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Users className="size-4 text-primary" /> Faculty Presence Summary
+              </h3>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="glass p-2.5 rounded-xl border border-border/50">
+                  <div className="text-[10px] text-muted-foreground font-semibold">Total</div>
+                  <div className="text-lg font-bold text-foreground mt-0.5">{totalFaculty}</div>
+                </div>
+                <div className="glass p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                  <div className="text-[10px] text-emerald-600 font-semibold flex items-center justify-center gap-1">
+                    <UserCheck className="size-3" /> Present
+                  </div>
+                  <div className="text-lg font-bold text-emerald-600 mt-0.5">{presentFaculty}</div>
+                </div>
+                <div className="glass p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10">
+                  <div className="text-[10px] text-rose-600 font-semibold flex items-center justify-center gap-1">
+                    <UserX className="size-3" /> Absent
+                  </div>
+                  <div className="text-lg font-bold text-rose-600 mt-0.5">{absenteesFaculty}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2">
@@ -279,8 +330,19 @@ function AFormPage() {
           ) : formData ? (
             <div className="glass rounded-2xl overflow-hidden">
               <div className="border-b border-foreground/10 px-5 py-3 flex items-center justify-between bg-foreground/[0.02]">
-                <h2 className="font-semibold text-sm">Preview A-Form ({formData.subtitle})</h2>
-                <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="size-4" />Print</Button>
+                <div>
+                  <h2 className="font-semibold text-sm">Preview A-Form ({formData.subtitle})</h2>
+                  <p className="text-xs text-muted-foreground">Toggle Present / Absent to update faculty duty presence</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                    Present: {presentFaculty}
+                  </Badge>
+                  <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30">
+                    Absent: {absenteesFaculty}
+                  </Badge>
+                  <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="size-4" />Print PDF</Button>
+                </div>
               </div>
               
               {/* Horizontal Scroll Support for Mobile Screens */}

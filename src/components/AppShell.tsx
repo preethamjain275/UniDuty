@@ -55,6 +55,8 @@ const NAV = [
 
 const ADMIN_ONLY = new Set<string>([
   "/settings",
+  "/forms/a-form",
+  "/forms/b-form",
 ]);
 
 export function useMe() {
