@@ -249,23 +249,72 @@ const MOCK_STAFF_REQUESTS = [
   },
 ];
 
-// Initial emergencies
+// Initial emergencies & student incident alerts
 const MOCK_EMERGENCIES = [
   {
     id: "emerg-1",
+    type: "student_malpractice",
+    category: "Student Copying / Malpractice",
     status: "open",
-    reason: "Medical Emergency - High Fever",
-    created_at: new Date().toISOString(),
+    reason: "Student (SRN: 2026CS0014) caught attempting to copy from unauthorized chits in Hall A-202.",
+    created_at: new Date(Date.now() - 1800000).toISOString(),
     admin_read_at: null,
     exam_id: "exam-1",
     room_id: "room-1",
     exam_name: "IA-1 Internal Assessment",
     exam_date: todayStr,
     start_time: "10:00 AM",
-    hall: "Block A-H-101",
-    raised_by: "Dr. Aarav Sharma",
+    hall: "Hall A-202",
+    student_srn: "2026CS0014",
+    student_name: "Karan Verma",
+    raised_by: "Mr. Kalaiah J B (AI & DS)",
+    original_teacher: "Mr. Kalaiah J B",
+    original_teacher_id: "fac-2",
+    admin_notes: null,
+    replacement: null,
+  },
+  {
+    id: "emerg-2",
+    type: "emergency",
+    category: "Duty Relief Request",
+    status: "open",
+    reason: "High Fever & Dizziness during invigilation - Requesting standby relief invigilator.",
+    created_at: new Date(Date.now() - 3600000).toISOString(),
+    admin_read_at: null,
+    exam_id: "exam-1",
+    room_id: "room-2",
+    exam_name: "IA-1 Internal Assessment",
+    exam_date: todayStr,
+    start_time: "10:00 AM",
+    hall: "Hall A-203",
+    student_srn: "",
+    student_name: "",
+    raised_by: "Dr. Aarav Sharma (Computer Science)",
     original_teacher: "Dr. Aarav Sharma",
     original_teacher_id: "teacher-1",
+    admin_notes: null,
+    replacement: null,
+  },
+  {
+    id: "emerg-3",
+    type: "student_malpractice",
+    category: "Student Copying / Phone Use",
+    status: "accepted",
+    reason: "Student (SRN: 2026EE0008) caught using mobile device during exam session in Hall A-307.",
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    admin_read_at: new Date(Date.now() - 80000000).toISOString(),
+    exam_id: "exam-1",
+    room_id: "room-3",
+    exam_name: "Mathematics II (25BEELY201)",
+    exam_date: todayStr,
+    start_time: "10:00 AM",
+    hall: "Hall A-307",
+    student_srn: "2026EE0008",
+    student_name: "Dev Kapoor",
+    raised_by: "Ms. Vinaya DS (AI & DS)",
+    original_teacher: "Ms. Vinaya DS",
+    original_teacher_id: "fac-1",
+    admin_notes: "Malpractice recorded by Chief Superintendent. Student answer sheet confiscated and squad verified.",
     replacement: null,
   },
 ];
@@ -1106,18 +1155,51 @@ export const listEmergencies = createServerFn({ method: "GET" })
     return stateEmergencies;
   });
 
+export const createFacultyIncident = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data }: any) => {
+    const newIncident = {
+      id: `emerg-${Date.now()}`,
+      type: data.type || "student_malpractice",
+      category: data.category || "Student Copying / Malpractice",
+      status: "open",
+      reason: data.reason,
+      created_at: new Date().toISOString(),
+      admin_read_at: null,
+      exam_id: "exam-1",
+      room_id: "room-1",
+      exam_name: data.exam_name || "IA-1 Internal Assessment",
+      exam_date: todayStr,
+      start_time: "10:00 AM",
+      hall: data.hall || "Hall A-202",
+      student_srn: data.student_srn || "",
+      student_name: data.student_name || "",
+      raised_by: data.raised_by || "Faculty Member",
+      original_teacher: data.raised_by || "Faculty Member",
+      original_teacher_id: "fac-1",
+      admin_notes: null,
+      replacement: null,
+    };
+    stateEmergencies.unshift(newIncident);
+    return newIncident;
+  });
+
 export const resolveEmergency = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => emergencyResolveSchema.parse(input))
   .handler(async ({ data }) => {
     const item = stateEmergencies.find((e) => e.id === data.requestId);
     if (item) {
-      if (data.action === "cancel") {
-        item.status = "cancelled";
+      if (data.action === "cancel" || data.action === "reject") {
+        item.status = "rejected";
+        if (data.notes) item.admin_notes = data.notes;
       } else {
-        item.status = "resolved";
-        const teacher = stateTeachers.find((t) => t.id === data.replacementTeacherId);
-        item.replacement = teacher ? `${teacher.full_name} (${teacher.designation || teacher.department})` : "Dr. Replacement Faculty";
+        item.status = "accepted";
+        if (data.notes) item.admin_notes = data.notes;
+        if (data.replacementTeacherId) {
+          const teacher = stateTeachers.find((t) => t.id === data.replacementTeacherId);
+          item.replacement = teacher ? `${teacher.full_name} (${teacher.designation || teacher.department})` : "Dr. Replacement Faculty";
+        }
       }
     }
     return { ok: true };

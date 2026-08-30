@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BellRing, Check, MailOpen, ShieldCheck, UserPlus, X, Trash2, Megaphone, Plus } from "lucide-react";
+import { BellRing, Check, MailOpen, UserPlus, X, Trash2, Megaphone, Plus, AlertTriangle, ShieldAlert, FileWarning, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import {
   listEmergencies,
   listStaffRequests,
@@ -24,22 +24,18 @@ import {
   listAdminNotices,
   createAdminNotice,
   deleteAdminNotice,
+  createFacultyIncident,
   myDuties,
 } from "@/lib/invigilation.functions";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
   head: () => ({
     meta: [
-      { title: "Notification Queue — InvigilateOS" },
+      { title: "Notifications & Incidents — InvigilateOS" },
       {
         name: "description",
-        content:
-          "Admin queue for staff approval requests and emergency invigilator alerts, filterable by exam, hall and unread status.",
+        content: "Institutional notice board, student malpractice incident reports, and duty swap approvals.",
       },
-      { property: "og:title", content: "Notification Queue — InvigilateOS" },
-      { property: "og:description", content: "Approve staff requests and resolve emergency alerts in one queue." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: NotificationsPage,
@@ -61,16 +57,27 @@ function NotificationsPage() {
   const listNoticesFn = useServerFn(listAdminNotices);
   const createNoticeFn = useServerFn(createAdminNotice);
   const deleteNoticeFn = useServerFn(deleteAdminNotice);
-
-  const { data: alerts } = useQuery({ queryKey: ["emergencies"], queryFn: () => emergenciesFn(), refetchInterval: 20000 });
-  const { data: requests } = useQuery({ queryKey: ["staff-requests"], queryFn: () => staffReqFn(), refetchInterval: 20000 });
-  const { data: staff } = useQuery({ queryKey: ["teachers"], queryFn: () => teachersFn(), enabled: isAdmin });
-  const { data: notices = [] } = useQuery({ queryKey: ["admin-notices"], queryFn: () => listNoticesFn(), refetchInterval: 10000 });
+  const createIncidentFn = useServerFn(createFacultyIncident);
   const myDutiesFn = useServerFn(myDuties);
-  const { data: duties = [] } = useQuery({ queryKey: ["my-duties"], queryFn: () => myDutiesFn(), enabled: !isAdmin, refetchInterval: 10000 });
+
+  const { data: alerts } = useQuery({ queryKey: ["emergencies"], queryFn: () => emergenciesFn(), refetchInterval: 5000 });
+  const { data: requests } = useQuery({ queryKey: ["staff-requests"], queryFn: () => staffReqFn(), refetchInterval: 5000 });
+  const { data: staff } = useQuery({ queryKey: ["teachers"], queryFn: () => teachersFn(), enabled: isAdmin });
+  const { data: notices = [] } = useQuery({ queryKey: ["admin-notices"], queryFn: () => listNoticesFn(), refetchInterval: 5000 });
+  const { data: duties = [] } = useQuery({ queryKey: ["my-duties"], queryFn: () => myDutiesFn(), enabled: !isAdmin, refetchInterval: 5000 });
 
   const [newNoticeTitle, setNewNoticeTitle] = useState("");
   const [newNoticeContent, setNewNoticeContent] = useState("");
+
+  const [incidentOpen, setIncidentOpen] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({
+    type: "student_malpractice",
+    category: "Student Copying / Malpractice",
+    hall: "Hall A-202",
+    student_srn: "",
+    student_name: "",
+    reason: "",
+  });
 
   const createNoticeMut = useMutation({
     mutationFn: (v: { title: string; content: string }) => createNoticeFn({ data: v }),
@@ -92,6 +99,30 @@ function NotificationsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createIncidentMut = useMutation({
+    mutationFn: () =>
+      createIncidentFn({
+        data: {
+          ...incidentForm,
+          raised_by: me?.full_name ? `${me.full_name} (${me.department || "Faculty"})` : "Faculty Invigilator",
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Incident / Request submitted to Examination Cell Admin");
+      setIncidentOpen(false);
+      setIncidentForm({
+        type: "student_malpractice",
+        category: "Student Copying / Malpractice",
+        hall: "Hall A-202",
+        student_srn: "",
+        student_name: "",
+        reason: "",
+      });
+      qc.invalidateQueries({ queryKey: ["emergencies"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const [kind, setKind] = useState<Kind>("all");
   const [exam, setExam] = useState("all");
   const [room, setRoom] = useState("all");
@@ -109,7 +140,7 @@ function NotificationsPage() {
   const review = useMutation({
     mutationFn: (v: { requestId: string; action: "approve" | "reject"; notes?: string }) => reviewFn({ data: v }),
     onSuccess: (_d, v) => {
-      toast.success(v.action === "approve" ? "Staff approved and activated" : "Request rejected");
+      toast.success(v.action === "approve" ? "Staff request approved" : "Staff request rejected");
       setDecisionNotes((prev) => {
         const next = { ...prev };
         delete next[v.requestId];
@@ -121,10 +152,10 @@ function NotificationsPage() {
   });
 
   const resolve = useMutation({
-    mutationFn: (v: { requestId: string; action: "resolve" | "cancel"; replacementTeacherId?: string }) =>
+    mutationFn: (v: { requestId: string; action: "accept" | "reject" | "resolve" | "cancel"; replacementTeacherId?: string; notes?: string }) =>
       resolveFn({ data: v }),
-    onSuccess: () => {
-      toast.success("Duty roster updated");
+    onSuccess: (_d, v) => {
+      toast.success(v.action === "accept" || v.action === "resolve" ? "Status updated: Accepted" : "Status updated: Rejected");
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -155,7 +186,6 @@ function NotificationsPage() {
 
   const visibleRequests = (requests ?? []).filter((r) => {
     if (kind === "emergency") return false;
-    // Staff requests are not tied to an exam or hall.
     if (exam !== "all" || room !== "all") return false;
     if (unreadOnly && r.admin_read_at) return false;
     return true;
@@ -169,8 +199,8 @@ function NotificationsPage() {
       title="Announcements & Notifications"
       description={
         isAdmin
-          ? "Manage institutional announcements, approve staff requests, and resolve emergency alerts."
-          : "View announcements, check your duties, and manage notification status."
+          ? "Manage institutional announcements, review student incident reports, and accept/reject faculty requests."
+          : "View Exam Cell announcements, submit student copying / incident reports to admin, and track request statuses."
       }
       actions={
         <div className="flex items-center gap-2">
@@ -196,15 +226,15 @@ function NotificationsPage() {
               ) : null}
             </>
           ) : (
-            <Badge variant="outline">
-              <Megaphone className="mr-1 size-3 text-primary" /> {notices.length} Notice{notices.length !== 1 ? "s" : ""}
-            </Badge>
+            <Button size="sm" className="btn-3d font-semibold" onClick={() => setIncidentOpen(true)}>
+              <FileWarning className="mr-1 size-4" /> Report Incident to Admin
+            </Button>
           )}
         </div>
       }
     >
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Section: Notice Board (Announcements) - Span 2 Columns */}
+        {/* Left Section: Notice Board & Announcements (2 Columns) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Admin Notice Composer */}
           {isAdmin && (
@@ -213,14 +243,14 @@ function NotificationsPage() {
                 <Megaphone className="size-4 text-amber-500" /> Publish Announcement / Notice
               </h2>
               <p className="text-muted-foreground mb-4 text-xs">
-                Write a notice that will instantly display on all faculty dashbboards and notification screens.
+                Write a notice that will instantly display on all faculty dashboards and notification screens.
               </p>
               <div className="space-y-3.5">
                 <div className="space-y-1.5">
                   <Label htmlFor="notice-title" className="text-xs">Notice Title</Label>
                   <Input
                     id="notice-title"
-                    placeholder="Enter short, descriptive title (e.g. IA-1 Seating Charts Published)"
+                    placeholder="Enter short, descriptive title (e.g. IA-1 Seating Charts & B-Forms Published)"
                     value={newNoticeTitle}
                     onChange={(e) => setNewNoticeTitle(e.target.value)}
                     className="glass text-sm"
@@ -230,8 +260,8 @@ function NotificationsPage() {
                   <Label htmlFor="notice-content" className="text-xs">Notice Content</Label>
                   <Textarea
                     id="notice-content"
-                    placeholder="Write detailed announcement content here (custom formatting text allowed)..."
-                    rows={4}
+                    placeholder="Write detailed announcement content here..."
+                    rows={3}
                     value={newNoticeContent}
                     onChange={(e) => setNewNoticeContent(e.target.value)}
                     className="glass text-xs resize-none"
@@ -249,20 +279,20 @@ function NotificationsPage() {
             </section>
           )}
 
-          {/* Notices List */}
+          {/* Exam Cell Notice Board */}
           <section className="card-3d p-5">
             <h2 className="font-display mb-1 text-lg font-semibold flex items-center gap-1.5">
               <Megaphone className="size-4 text-primary" /> Exam Cell Notice Board
             </h2>
             <p className="text-muted-foreground mb-4 text-xs">
-              Official updates from the Examination Controller.
+              Official updates & announcements from the Chief Controller of Examinations.
             </p>
             <div className="space-y-4">
               {notices.length === 0 ? (
                 <div className="glass rounded-2xl p-8 text-center text-muted-foreground text-sm">
                   {isAdmin
                     ? "No announcements posted yet. Use the composer above to publish a notice."
-                    : "No announcements from Exam Cell. Check your active duty alerts on the right."}
+                    : "No announcements from Exam Cell."}
                 </div>
               ) : (
                 notices.map((n: any) => (
@@ -299,16 +329,87 @@ function NotificationsPage() {
               )}
             </div>
           </section>
+
+          {/* For Faculty: Incident Reports & Requests Sent to Admin */}
+          {!isAdmin && (
+            <section className="card-3d p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-base font-semibold flex items-center gap-1.5">
+                    <FileWarning className="size-4 text-amber-500" /> My Submitted Requests & Incident Reports
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Track the real-time status of student copying reports & duty requests submitted to Admin.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setIncidentOpen(true)}>
+                  <Plus className="size-3.5 mr-1" /> New Report
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {(alerts ?? []).length === 0 ? (
+                  <div className="glass rounded-xl p-6 text-center text-xs text-muted-foreground">
+                    You have not submitted any student incidents or duty requests yet.
+                  </div>
+                ) : (
+                  (alerts ?? []).map((a: any) => {
+                    const isAccepted = a.status === "accepted" || a.status === "resolved";
+                    const isRejected = a.status === "rejected" || a.status === "cancelled";
+                    const isPending = !isAccepted && !isRejected;
+
+                    return (
+                      <div key={a.id} className="glass rounded-xl p-4 space-y-2 border border-foreground/10">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs">{a.category || "Incident Report"}</span>
+                              <Badge
+                                variant={isAccepted ? "secondary" : isRejected ? "destructive" : "outline"}
+                                className="text-[9px] capitalize py-0 font-bold"
+                              >
+                                {isAccepted ? "✓ Accepted" : isRejected ? "✕ Rejected" : "⏳ Pending Admin Review"}
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {a.hall} · {a.exam_name} · Reported on {new Date(a.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        {a.student_srn && (
+                          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-2 text-xs font-mono">
+                            <strong>Student Details:</strong> SRN {a.student_srn} {a.student_name ? `(${a.student_name})` : ""}
+                          </div>
+                        )}
+
+                        <p className="text-xs bg-foreground/[0.03] p-2.5 rounded-lg border border-foreground/5 leading-relaxed">
+                          <strong>Description:</strong> {a.reason}
+                        </p>
+
+                        {/* Admin Decision Note Displayed directly to Faculty */}
+                        {a.admin_notes && (
+                          <div className={`p-2.5 rounded-lg text-xs font-medium border ${isAccepted ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' : 'bg-rose-500/10 border-rose-500/30 text-rose-600'}`}>
+                            <strong>Admin Note / Action:</strong> {a.admin_notes}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
-        {/* Right Section: Role Specific Notifications (1 Column) */}
+        {/* Right Section: Admin Queue or Faculty Duty Summary (1 Column) */}
         <div className="space-y-6">
           {isAdmin ? (
             <>
-              {/* Filters for Admin Queue */}
+              {/* Admin Queue Filters */}
               <section className="glass p-4 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Admin Filters</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Queue Filters</h3>
                   <Button
                     variant={unreadOnly ? "default" : "outline"}
                     size="icon"
@@ -331,201 +432,126 @@ function NotificationsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  <Select value={room} onValueChange={setRoom}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue placeholder="Hall" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      <SelectItem value="all">All Halls</SelectItem>
-                      {roomOptions.map((r) => (
-                        <SelectItem key={r} value={r}>{r}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </section>
 
-              {/* Staff Requests */}
+              {/* Emergency Alerts & Student Copying Reports Queue */}
               <section className="card-3d p-5">
                 <h2 className="font-display mb-1 text-base font-semibold flex items-center gap-1.5">
-                  <UserPlus className="size-4 text-primary" /> Staff Registrations
+                  <ShieldAlert className="size-4 text-destructive" /> Student Incidents & Emergency Alerts
                 </h2>
                 <p className="text-muted-foreground mb-3.5 text-xs">
-                  Active approvals queue.
+                  Review student malpractice reports & invigilator relief alerts. Accept or reject with notes.
                 </p>
-                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                  {visibleRequests.length === 0 ? (
-                    <p className="text-muted-foreground text-xs text-center py-4">No pending registrations.</p>
-                  ) : (
-                    visibleRequests.map((r) => (
-                      <article key={r.id} className="glass space-y-2.5 rounded-xl p-3.5 text-left border border-foreground/5">
-                        <header className="flex flex-wrap items-start justify-between gap-1.5">
-                          <div className="min-w-0">
-                            <h3 className="font-display truncate text-xs leading-tight font-bold">
-                              {r.full_name}
-                              {!r.admin_read_at && (
-                                <span className="bg-destructive ml-1.5 inline-block size-1.5 rounded-full align-middle" />
-                              )}
-                            </h3>
-                            <p className="text-muted-foreground text-[10px] truncate">
-                              {r.department} · {r.designation}
-                            </p>
-                          </div>
-                          <Badge
-                            className="shrink-0 capitalize text-[8px] py-0"
-                            variant={r.status === "pending" ? "outline" : r.status === "approved" ? "secondary" : "destructive"}
-                          >
-                            {r.status}
-                          </Badge>
-                        </header>
 
-                        <div className="text-[10px] space-y-1 text-muted-foreground">
-                          <p className="truncate"><span className="font-medium text-foreground">Email:</span> {r.email}</p>
-                          <p><span className="font-medium text-foreground">Duties Limit:</span> {r.max_duties}</p>
-                          <p className="line-clamp-2"><span className="font-medium text-foreground">Reason:</span> {r.reason}</p>
-                        </div>
-
-                        {r.status !== "pending" && r.review_notes ? (
-                          <div className="bg-muted/40 rounded-lg p-2 text-[10px]">
-                            <span className="font-semibold">Notes:</span> {r.review_notes}
-                          </div>
-                        ) : null}
-
-                        {isAdmin && r.status === "pending" && (
-                          <div className="space-y-2 pt-1.5 border-t border-foreground/5">
-                            <Textarea
-                              value={decisionNotes[r.id] ?? ""}
-                              onChange={(e) => setDecisionNotes((prev) => ({ ...prev, [r.id]: e.target.value }))}
-                              placeholder="Review decision note..."
-                              rows={1}
-                              maxLength={300}
-                              className="glass resize-none text-[10px]"
-                            />
-                            <div className="flex gap-1.5">
-                              <Button
-                                size="xs"
-                                className="h-7 text-[10px] px-2.5"
-                                disabled={review.isPending}
-                                onClick={() =>
-                                  review.mutate({
-                                    requestId: r.id,
-                                    action: "approve",
-                                    ...(decisionNotes[r.id]?.trim() ? { notes: decisionNotes[r.id]!.trim() } : {}),
-                                  })
-                                }
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="xs"
-                                variant="destructive"
-                                className="h-7 text-[10px] px-2.5"
-                                disabled={review.isPending || (decisionNotes[r.id]?.trim().length ?? 0) < 3}
-                                onClick={() =>
-                                  review.mutate({
-                                    requestId: r.id,
-                                    action: "reject",
-                                    notes: decisionNotes[r.id]!.trim(),
-                                  })
-                                }
-                              >
-                                Reject
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </article>
-                    ))
-                  )}
-                </div>
-              </section>
-
-              {/* Emergency Alerts */}
-              <section className="card-3d p-5">
-                <h2 className="font-display mb-1 text-base font-semibold flex items-center gap-1.5">
-                  <BellRing className="size-4 text-destructive" /> Emergency Alerts
-                </h2>
-                <p className="text-muted-foreground mb-3.5 text-xs">
-                  Urgent duty swap coverage queue.
-                </p>
-                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                   {visibleAlerts.length === 0 ? (
-                    <p className="text-muted-foreground text-xs text-center py-4">No active emergencies.</p>
+                    <p className="text-muted-foreground text-xs text-center py-6">No active alerts or incident reports.</p>
                   ) : (
-                    visibleAlerts.map((a) => (
-                      <div key={a.id} className="glass space-y-2 rounded-xl p-3 border border-foreground/5">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-bold truncate">
-                            {a.exam_name} · {a.hall ?? "Standby"}
-                            {!a.admin_read_at && (
-                              <span className="bg-destructive ml-1.5 inline-block size-1.5 rounded-full align-middle" />
-                            )}
-                          </p>
-                          <Badge variant={a.status === "open" ? "destructive" : "secondary"} className="text-[8px] py-0">{a.status}</Badge>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Date: {a.exam_date} at {String(a.start_time).slice(0, 5)} · Raised by {a.raised_by}
-                        </p>
-                        <p className="text-[10px] bg-destructive/10 text-destructive p-2 rounded-lg">{a.reason}</p>
-                        {isAdmin && a.status === "open" && (
-                          <div className="space-y-2 pt-1 border-t border-foreground/5">
-                            <Select
-                              value={replacement[a.id] ?? ""}
-                              onValueChange={(v) => setReplacement((prev) => ({ ...prev, [a.id]: v }))}
-                            >
-                              <SelectTrigger className="w-full h-8 text-[11px]">
-                                <SelectValue placeholder="Choose Cover Teacher" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-56">
-                                {(staff ?? [])
-                                  .filter((t) => t.active && t.id !== a.original_teacher_id)
-                                  .map((t) => (
-                                    <SelectItem key={t.id} value={t.id} className="text-xs">
-                                      {t.full_name} · {t.duties} duties
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                            <div className="flex gap-2">
-                              <Button
-                                size="xs"
-                                disabled={resolve.isPending || !replacement[a.id]}
-                                onClick={() =>
-                                  resolve.mutate({
-                                    requestId: a.id,
-                                    action: "resolve",
-                                    replacementTeacherId: replacement[a.id]!,
-                                  })
-                                }
-                              >
-                                Assign
-                              </Button>
-                              <Button
-                                size="xs"
-                                variant="ghost"
-                                disabled={resolve.isPending}
-                                onClick={() => resolve.mutate({ requestId: a.id, action: "cancel" })}
-                              >
-                                Dismiss
-                              </Button>
+                    visibleAlerts.map((a) => {
+                      const isAccepted = a.status === "accepted" || a.status === "resolved";
+                      const isRejected = a.status === "rejected" || a.status === "cancelled";
+                      const isOpen = !isAccepted && !isRejected;
+
+                      return (
+                        <div key={a.id} className="glass space-y-2 rounded-xl p-3.5 border border-foreground/10 text-left">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-xs font-bold truncate">
+                                {a.category || "Incident Alert"}
+                                {!a.admin_read_at && (
+                                  <span className="bg-destructive ml-1.5 inline-block size-2 rounded-full align-middle animate-pulse" />
+                                )}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground font-mono">
+                                {a.hall} · {a.exam_name}
+                              </p>
                             </div>
+                            <Badge
+                              variant={isAccepted ? "secondary" : isRejected ? "destructive" : "outline"}
+                              className="text-[9px] capitalize py-0 font-bold"
+                            >
+                              {isAccepted ? "✓ Accepted" : isRejected ? "✕ Rejected" : "Pending"}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                    ))
+
+                          <p className="text-[10px] text-muted-foreground">
+                            Reported by: <strong className="text-foreground">{a.raised_by}</strong>
+                          </p>
+
+                          {a.student_srn && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 p-1.5 rounded text-[10px] font-mono">
+                              <strong>Student:</strong> SRN {a.student_srn} {a.student_name ? `(${a.student_name})` : ""}
+                            </div>
+                          )}
+
+                          <p className="text-[11px] bg-foreground/[0.03] p-2 rounded-lg leading-relaxed border border-foreground/5">
+                            {a.reason}
+                          </p>
+
+                          {a.admin_notes && (
+                            <p className="text-[10px] text-muted-foreground italic">
+                              <strong className="not-italic">Admin Note:</strong> {a.admin_notes}
+                            </p>
+                          )}
+
+                          {/* Admin Accept / Reject Decision Actions */}
+                          {isOpen && (
+                            <div className="space-y-2 pt-2 border-t border-foreground/10">
+                              <Input
+                                value={decisionNotes[a.id] ?? ""}
+                                onChange={(e) => setDecisionNotes((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                                placeholder="Write decision notes / action taken..."
+                                className="glass text-[10px] h-7"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="xs"
+                                  className="h-7 text-[10px] px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex-1"
+                                  disabled={resolve.isPending}
+                                  onClick={() =>
+                                    resolve.mutate({
+                                      requestId: a.id,
+                                      action: "accept",
+                                      notes: decisionNotes[a.id]?.trim() || "Accepted / Action Taken by Admin",
+                                    })
+                                  }
+                                >
+                                  <Check className="size-3 mr-1" /> Accept / Approve
+                                </Button>
+                                <Button
+                                  size="xs"
+                                  variant="destructive"
+                                  className="h-7 text-[10px] px-3 font-bold flex-1"
+                                  disabled={resolve.isPending}
+                                  onClick={() =>
+                                    resolve.mutate({
+                                      requestId: a.id,
+                                      action: "reject",
+                                      notes: decisionNotes[a.id]?.trim() || "Rejected by Admin",
+                                    })
+                                  }
+                                >
+                                  <X className="size-3 mr-1" /> Reject
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </section>
             </>
           ) : (
-            /* Faculty Duty Summary */
+            /* Faculty Scheduled Duty Summary */
             <section className="card-3d p-5">
               <h2 className="font-display mb-1 text-lg font-semibold flex items-center gap-1.5">
-                <BellRing className="size-4 text-primary" /> My Duties & Alerts
+                <BellRing className="size-4 text-primary" /> My Scheduled Duties
               </h2>
               <p className="text-muted-foreground mb-4 text-xs">
-                Review your current exam schedule and alert states.
+                Review your invigilation hall assignments.
               </p>
               <div className="space-y-3">
                 {duties.length === 0 ? (
@@ -549,13 +575,7 @@ function NotificationsPage() {
                         <span className="capitalize bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
                           {d.duty_role}
                         </span>
-                        {d.alert_raised ? (
-                          <span className="text-destructive font-semibold flex items-center gap-0.5 animate-pulse">
-                            ⚠️ Emergency Active
-                          </span>
-                        ) : (
-                          <span className="text-emerald-400 font-medium">✓ Active</span>
-                        )}
+                        <span className="text-emerald-500 font-medium">✓ Active</span>
                       </div>
                     </div>
                   ))
@@ -565,6 +585,87 @@ function NotificationsPage() {
           )}
         </div>
       </div>
+
+      {/* Report Student Copying / Incident Dialog for Faculty */}
+      <Dialog open={incidentOpen} onOpenChange={setIncidentOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-amber-500" /> Report Incident / Request to Admin
+            </DialogTitle>
+            <DialogDescription>
+              Report student copying, malpractice, or duty relief requests directly to the Examination Cell Admin.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2 text-xs">
+            <div className="grid gap-1.5">
+              <Label>Category</Label>
+              <Select
+                value={incidentForm.category}
+                onValueChange={(v) => setIncidentForm({ ...incidentForm, category: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Student Copying / Malpractice">🚨 Student Copying / Malpractice</SelectItem>
+                  <SelectItem value="Student Phone / Tech Misuse">📱 Student Phone / Unauthorized Material</SelectItem>
+                  <SelectItem value="Duty Relief Request">🚑 Duty Relief / Emergency Request</SelectItem>
+                  <SelectItem value="Answer Booklet Shortage">📦 Answer Booklet / Supply Request</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Exam Hall / Room Number</Label>
+              <Input
+                value={incidentForm.hall}
+                onChange={(e) => setIncidentForm({ ...incidentForm, hall: e.target.value })}
+                placeholder="Hall A-202"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1.5">
+                <Label>Student SRN (Optional)</Label>
+                <Input
+                  value={incidentForm.student_srn}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, student_srn: e.target.value })}
+                  placeholder="2026CS0014"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Student Name (Optional)</Label>
+                <Input
+                  value={incidentForm.student_name}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, student_name: e.target.value })}
+                  placeholder="Karan Verma"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Detailed Reason / Description</Label>
+              <Textarea
+                value={incidentForm.reason}
+                onChange={(e) => setIncidentForm({ ...incidentForm, reason: e.target.value })}
+                placeholder="Describe what happened (e.g. Student caught using unauthorized study notes in Hall A-202)..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIncidentOpen(false)}>Cancel</Button>
+            <Button
+              className="btn-3d"
+              onClick={() => createIncidentMut.mutate()}
+              disabled={createIncidentMut.isPending || !incidentForm.reason.trim()}
+            >
+              <Send className="size-4 mr-1" /> Submit to Admin
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
-};
+}

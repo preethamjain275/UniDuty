@@ -102,7 +102,8 @@ export const emergencyRaiseSchema = z.object({
 export const emergencyResolveSchema = z.object({
   requestId: z.string().min(1),
   replacementTeacherId: z.string().min(1).optional(),
-  action: z.enum(["resolve", "cancel"]),
+  action: z.enum(["resolve", "cancel", "accept", "reject", "approve"]),
+  notes: z.string().trim().max(300).optional(),
 });
 
 export const staffRequestSchema = z.object({
