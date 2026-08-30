@@ -195,12 +195,15 @@ function ExamDetailPage() {
         </style>
       </head>
       <body>
-        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
-          <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">SRINIVASA RAMANUJAN INSTITUTE OF TECHNOLOGY</h2>
-          <h3 style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">EXAMINATION CELL — OFFICIAL FACULTY DUTY CHART</h3>
-          <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold;">
-            Examination: ${exam?.name ?? ""} | Date: ${exam?.exam_date ?? ""} | Time: ${exam?.start_time ?? "10:00 AM"} (${exam?.duration_minutes ?? 90} Min)
-          </p>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px;">
+          <img src="${typeof window !== 'undefined' ? window.location.origin : ''}/snpsu-logo.png" alt="SNPSU Logo" style="width: 48px; height: 48px; object-fit: contain;" />
+          <div style="text-align: center;">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">SAPTHAGIRI NPS UNIVERSITY</h2>
+            <h3 style="margin: 3px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">EXAMINATION CELL — OFFICIAL FACULTY DUTY CHART</h3>
+            <p style="margin: 3px 0 0 0; font-size: 11px; font-weight: bold;">
+              Examination: ${exam?.name ?? ""} | Date: ${exam?.exam_date ?? ""} | Time: ${exam?.start_time ?? "10:00 AM"} (${exam?.duration_minutes ?? 90} Min)
+            </p>
+          </div>
         </div>
 
         <table>
@@ -283,12 +286,15 @@ function ExamDetailPage() {
         </style>
       </head>
       <body>
-        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
-          <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">SRINIVASA RAMANUJAN INSTITUTE OF TECHNOLOGY</h2>
-          <h3 style="margin: 4px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">EXAMINATION CELL — STUDENT SEATING ALLOCATION LIST</h3>
-          <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold;">
-            Examination: ${exam?.name ?? ""} | Date: ${exam?.exam_date ?? ""} | Time: ${exam?.start_time ?? "10:00 AM"} (${exam?.duration_minutes ?? 90} Min)
-          </p>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px;">
+          <img src="${typeof window !== 'undefined' ? window.location.origin : ''}/snpsu-logo.png" alt="SNPSU Logo" style="width: 48px; height: 48px; object-fit: contain;" />
+          <div style="text-align: center;">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">SAPTHAGIRI NPS UNIVERSITY</h2>
+            <h3 style="margin: 3px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">EXAMINATION CELL — STUDENT SEATING ALLOCATION LIST</h3>
+            <p style="margin: 3px 0 0 0; font-size: 11px; font-weight: bold;">
+              Examination: ${exam?.name ?? ""} | Date: ${exam?.exam_date ?? ""} | Time: ${exam?.start_time ?? "10:00 AM"} (${exam?.duration_minutes ?? 90} Min)
+            </p>
+          </div>
         </div>
 
         <table>
