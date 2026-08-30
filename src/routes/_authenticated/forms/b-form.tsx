@@ -240,7 +240,17 @@ function BFormPage() {
   }
 
   return (
-    <AppShell title="B-Form — Individual Room Attendance" description="Official Student Examination Attendance & Booklet Allocation Form (Admin Only)">
+    <AppShell
+      title="B-Form — Individual Room Attendance"
+      description="Official Student Examination Attendance & Booklet Allocation Form (Admin Only)"
+      actions={
+        formData ? (
+          <Button className="btn-3d font-bold shrink-0" size="sm" onClick={handlePrint}>
+            <Printer className="size-4 mr-1" /> Print PDF
+          </Button>
+        ) : null
+      }
+    >
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4">
           <div className="glass rounded-2xl p-5 space-y-4">
@@ -260,7 +270,7 @@ function BFormPage() {
             </div>
             {formData && (
               <Button className="w-full btn-3d" onClick={handlePrint}>
-                <Printer className="size-4" /> Print / Export PDF B-Form
+                <Printer className="size-4 mr-1" /> Print / Export PDF B-Form
               </Button>
             )}
           </div>
@@ -297,22 +307,30 @@ function BFormPage() {
             <div className="glass rounded-2xl p-12 text-center text-muted-foreground">Loading B-Form data…</div>
           ) : formData ? (
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="border-b border-foreground/10 px-5 py-3 flex items-center justify-between">
+              <div className="border-b border-foreground/10 px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-foreground/[0.02]">
                 <div>
                   <h2 className="font-semibold text-sm">Preview B-Form — Room {formData.room_no}</h2>
                   <p className="text-xs text-muted-foreground">Edit booklet numbers directly or toggle Present / Absent status</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                <div className="flex items-center flex-wrap gap-2">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs">
                     Present: {formData.present_count}
                   </Badge>
-                  <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30">
+                  <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30 text-xs">
                     Absent: {formData.absentees_count}
                   </Badge>
-                  <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="size-4" />Print PDF</Button>
+                  <Button size="sm" className="btn-3d shrink-0" onClick={handlePrint}><Printer className="size-4 mr-1" />Print PDF</Button>
                 </div>
               </div>
-              <div className="w-full overflow-x-auto p-4 bg-white rounded-b-2xl scrollbar-thin">
+              
+              <div className="sm:hidden px-4 pt-3 pb-1 text-[11px] text-muted-foreground flex items-center justify-between font-medium border-b border-foreground/5 bg-muted/20">
+                <span>↔️ Swipe table to view full columns</span>
+                <Button size="xs" variant="ghost" className="h-6 text-[10px] text-primary" onClick={handlePrint}>
+                  <Printer className="size-3 mr-1" /> Print PDF
+                </Button>
+              </div>
+
+              <div className="w-full overflow-x-auto p-2 sm:p-4 bg-white rounded-b-2xl scrollbar-thin">
                 <div className="min-w-[794px]">
                   <BFormPrint
                     form={formData}
